@@ -4,7 +4,7 @@ import { StyleSheet, Text, View } from 'react-native';
 export default function App() {
   return (
     <View style={styles.container}>
-      <Text>Open up App.js asdasd !</Text>
+      <Text>Open up App.js Gualeactiva !</Text>
       <StatusBar style="auto" />
     </View>
   );
