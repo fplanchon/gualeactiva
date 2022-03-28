@@ -27,6 +27,8 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "description": "Login y useAxios Hook",
+    "githubUrl": "https://github.com/fplanchon/gualeactiva.git"
   }
 }
