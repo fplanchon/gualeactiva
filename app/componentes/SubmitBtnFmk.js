@@ -8,7 +8,7 @@ export default function SubmitBtnFmk({ title, onPress, submitting }) {
     const backgroundColor = !submitting ? estilosVar.azulSuave : estilosVar.colorIconoInactivo
 
     return (
-        <TouchableOpacity style={[stylesGral.touchableSubmitBtn, { backgroundColor }]} onPress={!submitting ? onPress : null}>
+        <TouchableOpacity style={[stylesGral.touchableSubmitBtn, { backgroundColor },{"marginBottom": 30}]} onPress={!submitting ? onPress : null}>
             <Text style={stylesGral.textSubminBtn}>{title}</Text>
         </TouchableOpacity>
     )

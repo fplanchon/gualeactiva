@@ -1,6 +1,6 @@
 import React, { useEffect, useContext, useState, useRef } from "react"
 
-import { ScrollView, StyleSheet } from "react-native";
+import { ScrollView, StyleSheet, View } from "react-native";
 import { Text, Icon } from "react-native-elements";
 import * as Yup from 'yup'
 import { Formik } from 'formik'
@@ -12,9 +12,9 @@ import stylesGral from "../../utils/StyleSheetGeneral";
 import TextInputFmk from "../../componentes/TextInputFmk";
 import SubmitBtnFmk from "../../componentes/SubmitBtnFmk";
 import Loading from "../../componentes/Loading";
-import axiosInstance from "../../utils/axiosInstance";
+//import axiosInstance from "../../utils/axiosInstance";
 import estilosVar from "../../utils/estilos";
-import expRegulares from "../../utils/expresionesReg";
+import {cuilValidator, expRegulares} from "../../utils/validaciones";
 
 export default function Registro() {
     const [dataPicker, setDataPicker] = useState(false)
@@ -66,9 +66,9 @@ export default function Registro() {
         nombre: Yup.string().trim().min(2, 'Nombre demasiado corto').required(sEsRequerido),
         apellido: Yup.string().trim().required(sEsRequerido),  
         dni: Yup.number().typeError('Ingrese solo números').required(sEsRequerido).test("dni_valido","El DNI no es válido", val => expRegulares.dni.test(val)),
-        cuitcuil: Yup.number().typeError('Ingrese solo números').required(sEsRequerido).test("cuil_valido","El CUIL no es válido", val => expRegulares.cuil.test(val)),
+        cuitcuil: Yup.number().typeError('Ingrese solo números').required(sEsRequerido).test("cuil_valido","El CUIL no es válido", (val) => (val !== undefined) && cuilValidator(val.toString())),
         email: Yup.string().email('Indique un email válido').required(sEsRequerido),
-        celular: Yup.number().typeError('Ingrese solo números').test("celular",'Ingrese al menos 10 caracteres.', val => expRegulares.cel.test(val)),
+        celular: Yup.number().typeError('Ingrese solo números').required(sEsRequerido).test("celular",'Ingrese un celular correcto.', (val) => (val !== undefined) && expRegulares.cel.test(val.toString())),
         fechaNacimiento: Yup.date().typeError('').required(sEsRequerido),
         pass: Yup.string().min(6, 'Mínimo 6 caracteres').required(sEsRequerido),
         confirmaPass: Yup.string().oneOf([Yup.ref('pass')], 'No coincide la contraseña')
@@ -198,11 +198,17 @@ export default function Registro() {
                             error={touched.celular && errors.celular}
                             onChangeText={handleChange('celular')}
                             onBlur={handleBlur('celular')}
-                            value={values.celular}
+                            value={parseInt(values.celular[0]) === 0 ? values.celular.slice(1) : values.celular}
                             keyboardType='number-pad'
                             ref={Inputs.celular} 
                             onSubmitEditing={() => { Inputs.fechaNacimiento.current.focus(); }} blurOnSubmit={false}
                         />
+                        <View style={stylesGral.info}>
+                            <View style={styles.iconRow}>
+                                <Icon style={styles.styleIcon} name='information' type='material-community' color={estilosVar.naranjaBitter} />
+                                <Text style={styles.textInfo}>Código de área sin "0" + Teléfono sin "15"</Text>
+                            </View>
+                        </View>
                         <TextInputFmk
                             name="fechaNacimiento"
                             placeholder={datePlaceHolder ? datePlaceHolder : "Fecha Nacimiento"}
@@ -301,5 +307,26 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         marginBottom: 30,
         marginTop: 30
-    }
+    },
+    info:{
+        width: 295,
+        height: 41,
+        flexDirection: "row",
+    },
+    iconRow: {
+        height: 41,
+        flexDirection: "row",
+        flex: 1,
+        marginBottom: 10,
+        marginTop: -10
+    },
+    styleIcon: {
+        fontSize: 30,
+        width: 40,
+        height: 41
+    },
+    textInfo:{
+        height: 29,
+        width: 265,
+    },
 })
