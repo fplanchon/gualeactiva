@@ -1,42 +1,48 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-
-import { Button, Text, TextInput, View, ActivityIndicator } from 'react-native';
-import { NavigationContainer } from '@react-navigation/native';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { LogBox } from 'react-native';
+import { NavigationContainer } from '@react-navigation/native'
+import { createNativeStackNavigator } from '@react-navigation/native-stack'
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs"
 
 import { Icon } from "react-native-elements"
 import { AuthContext } from "./app/contexts/AuthContext"
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import AsyncStorage from '@react-native-async-storage/async-storage'
+
+import { initFirebase } from "./app/utils"
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth'
 import estilosVar from "./app/utils/estilos"
 import Loading from "./app/componentes/Loading"
 import HomeStack from "./app/navigations/HomeStack"
 import MenuStack from "./app/navigations/MenuStack"
-import axiosInstance from './app/utils/axiosInstance';
+import axiosInstance from './app/utils/axiosInstance'
 import constantes from "./app/utils/constantes"
-import LoginStack from './app/navigations/LoginStack';
-import { navigationRef } from "./app/navigations/RootNavigation";
-import Logout from './app/pantallas/cuenta/Logout';
+import LoginStack from './app/navigations/LoginStack'
+import { navigationRef } from "./app/navigations/RootNavigation"
 
+LogBox.ignoreAllLogs();
 
 export default function App({ navigation }) {
     const RootStack = createNativeStackNavigator();
+
+
+
     const initialLoginState = {
         isLoading: true,
         loadingText: '',
-        dni: null,
+        email: '',
         userToken: null,
         isError: false,
         errorText: '',
     };
+
 
     const loginReducer = (prevState, action) => {
         switch (action.type) {
             case 'ERROR':
                 return {
                     ...prevState,
-                    dni: null,
+                    email: null,
                     userToken: null,
                     isLoading: false,
                     loadingText: '',
@@ -63,7 +69,7 @@ export default function App({ navigation }) {
             case 'LOGIN':
                 return {
                     ...prevState,
-                    dni: action.id,
+                    email: action.id,
                     userToken: action.token,
                     isLoading: false,
                     loadingText: '',
@@ -73,7 +79,7 @@ export default function App({ navigation }) {
             case 'LOGOUT':
                 return {
                     ...prevState,
-                    dni: null,
+                    email: null,
                     userToken: null,
                     isLoading: false,
                     loadingText: '',
@@ -83,7 +89,7 @@ export default function App({ navigation }) {
             case 'REGISTER':
                 return {
                     ...prevState,
-                    dni: action.dni,
+                    email: action.email,
                     userToken: action.token,
                     isLoading: false,
                     loadingText: '',
@@ -97,46 +103,94 @@ export default function App({ navigation }) {
 
     const authContext = React.useMemo(() => ({
         signIn: async (credenciales) => {
-            let type = 'LOGIN';
             let payload = null;
             let userToken = null;
-            const dni = credenciales.dni;
+            const email = credenciales.email;
             const password = credenciales.password;
+            dispatch({ type: 'PETICION', loadingText: 'Iniciando Sesión...' });
+
             try {
-                const url = constantes.API + 'loginApi';
+                //1 - Si existe en firebase, logg ok 
+                const auth = getAuth();
+                await signInWithEmailAndPassword(
+                    auth,
+                    email,
+                    password,
+                );
+                //onsole.log('AUTHfirebase', auth);
 
-                dispatch({ type: 'PETICION', loadingText: 'Iniciando Sesión...' })
-                const datos = { datousuario: dni, claveusuario: password };
 
-                const response = await axios.post(url, datos);
+                userToken = auth.currentUser.stsTokenManager.accessToken;
 
-                if (response.data.success) {
-                    const usuario = response['data'];
-                    //console.log(usuario);
-                    userToken = usuario['data']['token'];
-                    //await AsyncStorage.setItem('userToken', userToken);
-                    payload = { dni: dni, token: userToken };
-                } else {
-                    type = 'ERROR';
-                    payload = { errorText: response.data.error };
-                    // dispatch({ type: 'ERROR', errorText: response.data.error });
-                }
+                payload = { email: email, token: userToken };
+
+                dispatch({ type: 'LOGIN', ...payload });
             } catch (e) {
-                console.log(e);
+                let errorMsj = '';
+                //2 - Si no existe en firebase, verifico en pim
+                if (e.code === 'auth/user-not-found') {
+                    const url = constantes.API + 'obtenerUsuarioLegacy';
+                    const datos = { datousuario: email, claveusuario: password };
+                    const response = await axios.post(url, datos);
+
+                    if (response.data.success) {
+                        const PimUsuario = response.data.data;
+                        //console.log(PimUsuario);
+                        const auth = getAuth();
+
+                        await createUserWithEmailAndPassword(auth, email, password)
+                            .then((userCredential) => {
+                                // Signed in
+                            })
+                            .catch((error) => {
+                                const errorCode = error.code;
+                                const errorMessage = error.message;
+                                //console.log(errorCode);
+                                //console.log(errorMessage);
+                                // ..
+                            });
+
+
+                        await updateProfile(getAuth().currentUser, { displayName: PimUsuario.id_ciudadano }).then(() => {
+                            // Profile updated!
+                            authContext.signIn({ email: email, password: password });
+                            // ...
+                        }).catch((error) => {
+                            //console.log('error updateProfile', error);
+                        });
+
+                    } else {
+                        //Si no existe en pim, entonces es un usuario
+                        errorMsj = 'Usuario o contraseña incorrectos';
+
+                    }
+
+
+                } else if (e.code === 'auth/invalid-email') {
+                    errorMsj = 'Formato de email incorrecto';
+                } else if (e.code === 'auth/wrong-password') {
+                    errorMsj = 'Contraseña incorrecta';
+                } else {
+                    errorMsj = 'Ocurrió un error inesperado con el servicio de autenticación ' + e.code;
+                }
+
+                if (errorMsj !== '') {
+                    dispatch({ type: 'ERROR', errorText: errorMsj });
+                }
             }
 
-            dispatch({ type: type, ...payload });
+
 
         },
         signOut: async () => {
-            try {
+            /*try {
                 const url = constantes.API + 'cerrarSesionApi';
                 // userToken = await AsyncStorage.getItem('userToken');
                 const response = await axios.post(url, { jwt: userToken });
                 //await AsyncStorage.removeItem('userToken');
             } catch (e) {
                 console.log(e);
-            }
+            }*/
 
             dispatch({ type: 'LOGOUT' });
         },
@@ -162,13 +216,12 @@ export default function App({ navigation }) {
 
     useEffect(() => {
         setTimeout(async () => {
-            console.log();
             let userToken;
             userToken = null;
             try {
                 //userToken = await AsyncStorage.getItem('userToken');
             } catch (e) {
-                console.log(e);
+                //console.log(e);
             }
 
             dispatch({ type: 'RETRIEVE_TOKEN', token: userToken });

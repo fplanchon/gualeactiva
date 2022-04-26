@@ -29,8 +29,8 @@ export default function Home() {
 
         if (res !== null) {
             setData(res.data);
-            console.log('home_useeffect')
-            console.log(res.data)
+            //console.log('home_useeffect')
+            //console.log(res.data)
         }
     }, [pedir]);
 

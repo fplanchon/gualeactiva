@@ -1,6 +1,6 @@
 'use strict'
 const constantes = {
-    API: 'http://fp-api.gchu.org/'
+    API: 'http://fp-apiseg.gchu.org/'
 }
 
 export default constantes

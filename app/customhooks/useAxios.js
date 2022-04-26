@@ -10,7 +10,9 @@ import * as RootNavigation from '../navigations/RootNavigation';
 const axiosInstance = axios.create({
     baseURL: constantes.API,
     headers: {
-        "Content-Type": "application/json",
+        "Content-Type": "application/json, text/plain",
+        "Accept": "application/json, text/plain",
+        "content-type": "application/json, text/plain",
     },
 });
 
@@ -75,7 +77,7 @@ const useAxios = (configParams) => {
         ...configParams,
         headers: { common: { 'user-token': loginState.userToken } }
     }
-    console.log(configParams);
+
     useEffect(() => {
         refetch(configParams);
     }, []);

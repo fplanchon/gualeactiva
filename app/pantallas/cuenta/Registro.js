@@ -11,6 +11,8 @@ import Loading from "../../componentes/Loading";
 import axiosInstance from "../../utils/axiosInstance";
 import { Button } from "react-native-elements/dist/buttons/Button";
 import { AuthContext } from "../../contexts/AuthContext";
+import { initFirebase } from "../../utils"
+import { getAuth, createUserWithEmailAndPassword, updateProfile, deleteUser } from 'firebase/auth'
 
 export default function Registro() {
     const registroInitialState = {
@@ -28,6 +30,7 @@ export default function Registro() {
 
     const [dataRegistro, setDataRegistro] = useState(registroInitialState)
     const [pedir, setPedir] = useState(0)
+    const [firebaseError, setFirebaseError] = useState(false)
 
     const sEsRequerido = 'Es Requerido';
 
@@ -41,7 +44,6 @@ export default function Registro() {
         fechaNacimiento: Yup.date('Formato de fecha (DD/MM/YYY)').required(sEsRequerido),
         pass: Yup.string().min(6, 'Mínimo 6 caracteres').required(sEsRequerido),
         confirmaPass: Yup.string().oneOf([Yup.ref('pass')], 'No coincide con la contraseña')
-
     })
 
     const { res, err, loading, refetch } = useAxiosNoToken({
@@ -51,27 +53,67 @@ export default function Registro() {
     })
 
     useEffect(() => {
+        // console.log('useEffect pedir')
         if (pedir > 0) {
-            const registrar = () => {
-                console.log('dataregistro', dataRegistro)
-                refetch()
 
+            const registrar = async () => {
+                //console.log('registrar()')
+                const auth = getAuth();
+                setFirebaseError(false);
+                await createUserWithEmailAndPassword(auth, dataRegistro.email, dataRegistro.pass)
+                    .then((userCredential) => {
+                        //console.log('refetch()')
+                        refetch()
+
+                    })
+                    .catch((error) => {
+
+                        /*deleteUser(getAuth().currentUser).then(() => {
+
+                        }).catch((error) => {
+                            console.log('error borrarUsuario', error);
+                        });*/
+                        setFirebaseError(error)
+                    });
             }
+
             registrar()
         }
     }, [pedir])
 
     useEffect(() => {
-        const effectRes = () => {
+        //console.log('useEffect res')
+        const effectRes = async () => {
+            //console.log(res)
             if (typeof res.data !== 'undefined') {
                 if (res.data.success) {
-                    console.log('registro', res.data.data.registro)
+                    //console.log('registro', res.data.data.registro)
                     if (res.data.data.registro === 'OK') {
-                        const dni = res.data.data.dni
+                        const email = res.data.data.email
                         const pass = res.data.data.pass
-                        console.log(res.data.data.dni, res.data.data.pass)
-                        authContext.signIn({ dni: dni, password: pass })
+                        //console.log(res.data.data.dni, res.data.data.pass, res.data.data.id_ciudadano)
+
+                        await updateProfile(getAuth().currentUser, { displayName: res.data.data.id_ciudadano }).then(() => {
+                            // Profile updated!
+                            authContext.signIn({ email: email, password: pass })
+                            // ...
+                        }).catch((error) => {
+                            //console.log('error updateProfile', error);
+                        });
+
+                    } else {
+                        await deleteUser(getAuth().currentUser).then(() => {
+
+                        }).catch((error) => {
+                            //console.log('error borrarUsuario en perfil', error);
+                        });
                     }
+                } else {
+                    await deleteUser(getAuth().currentUser).then(() => {
+
+                    }).catch((error) => {
+                        //console.log('error borrarUsuario en perfil success false', error);
+                    });
                 }
             }
         }
@@ -80,18 +122,17 @@ export default function Registro() {
     }, [res])
 
 
+
+
+
     const submitRegistro = (values, formikActions) => {
-        console.log('submitRegistro');
-        //console.log(values)
+        //console.log('submitRegistro')
 
         setDataRegistro(values)
 
-        //formikActions.resetForm()
 
-        //const respuesta = await axiosInstance.post('registrarCiudadano', values);
-        // console.log(respuesta.data.data);
-        formikActions.setSubmitting(false);
         setPedir(pedir + 1)
+        formikActions.setSubmitting(false)
     }
 
     return (
@@ -191,19 +232,32 @@ export default function Registro() {
 
                         <SubmitBtnFmk submitting={isSubmitting} onPress={handleSubmit} title='Registrarme' />
                         {(err) ?
-                            <Text style={stylesGral.errorText}>{JSON.stringify(err)}</Text>
+                            <>
+                                <Text>Err axios</Text>
+                                <Text style={stylesGral.errorText}>{JSON.stringify(err)}</Text>
+                            </>
                             : null
                         }
                         {(typeof res.data !== 'undefined') ?
                             (!res.data.success) ?
-                                <Text style={stylesGral.errorText}>{res.data.error}</Text>
+                                <>
+                                    <Text>err res</Text>
+                                    <Text style={stylesGral.errorText}>{res.data.error}</Text>
+                                </>
                                 : null
                             : null
                         }
-
+                        {(firebaseError) ?
+                            <>
+                                <Text>err firebase</Text>
+                                <Text style={stylesGral.errorText}>{JSON.stringify(firebaseError)}</Text>
+                            </>
+                            : null
+                        }
                     </>
                 )}
             </Formik>
+            <Text>{pedir}</Text>
             {loading ? (
                 <Loading isLoading={true} text={"Consultando..."} />
             ) : null}

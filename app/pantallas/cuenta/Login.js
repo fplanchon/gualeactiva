@@ -7,14 +7,14 @@ import stylesGral from "../../utils/StyleSheetGeneral";
 import { useNavigation } from "@react-navigation/native";
 
 export default function Login() {
-    const [dni, setDni] = React.useState('');
+    const [email, setEmail] = React.useState('');
     const [password, setPassword] = React.useState('');
     const [showPass, setShowPass] = React.useState(false);
     const { authContext, loginState } = React.useContext(AuthContext);
     const navigation = useNavigation();
 
-    const handleDni = (e) => {
-        setDni(e.nativeEvent.text)
+    const handleEmail = (e) => {
+        setEmail(e.nativeEvent.text)
     }
 
     const handlePass = (e) => {
@@ -27,7 +27,7 @@ export default function Login() {
             <Card >
                 <Card.Title>
                     <Text style={styles.tituloCard}>
-                        Indique DNI y Contraseña
+                        Indique Email y Contraseña
                     </Text>
                 </Card.Title>
                 <Card.Image
@@ -36,18 +36,17 @@ export default function Login() {
                 />
                 <Card.Divider />
                 <Input
-                    placeholder="DNI"
-                    keyboardType='number-pad'
+                    placeholder="Email"
                     containerStyle={styles.inputForm}
                     rightIcon={
                         <Icon
                             type="material"
-                            name="badge"
+                            name="email"
                             iconStyle={styles.iconRight}
                         />
                     }
 
-                    onChange={(e) => handleDni(e)}
+                    onChange={(e) => handleEmail(e)}
                 />
                 <Input
                     placeholder="Contraseña"
@@ -68,7 +67,7 @@ export default function Login() {
                     <Text style={stylesGral.errorText}>{loginState.errorText}</Text>
                     : null
                 }
-                <Button title="Iniciar Sesión" onPress={() => authContext.signIn({ dni, password })} />
+                <Button title="Iniciar Sesión" onPress={() => authContext.signIn({ email, password })} />
                 <Card.Divider />
                 <Text style={styles.textRegister}>
                     ¿Aún no tienes una cuenta?&nbsp;&nbsp;

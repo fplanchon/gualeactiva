@@ -63,6 +63,7 @@ const useAxiosNoToken = (configParams) => {
             .catch((err) => {
                 setRes('')
                 setErr(err)
+                console.log('useAxiosNoTokenError', err)
             })
             .finally(() => setLoading(false))
     }
