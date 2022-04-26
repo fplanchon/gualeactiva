@@ -75,7 +75,7 @@ const useAxios = (configParams) => {
 
     configParams = {
         ...configParams,
-        headers: { common: { 'user-token': loginState.userToken } }
+        headers: { ...configParams.headers, common: { 'user-token': loginState.userToken } }
     }
 
     useEffect(() => {
@@ -83,7 +83,6 @@ const useAxios = (configParams) => {
     }, []);
 
     const refetch = async () => {
-        //console.log(configParams)
         setLoading(true);
         await axiosInstance.request(configParams)
             .then(res => setRes(res))

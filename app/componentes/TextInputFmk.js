@@ -1,10 +1,10 @@
 //Input custom para usar en formularios con  <FORMIK/>
-import React from "react";
+import React, { forwardRef, useRef } from 'react';
 import { View } from "react-native";
 import { Input, Text } from "react-native-elements";
 import stylesGral from "../utils/StyleSheetGeneral";
 
-export default function TextInputFmk(props) {
+const TextInputFmk = (props, ref) => {
     const { placeholder, error, slabel } = props
     return (
         <>
@@ -14,7 +14,9 @@ export default function TextInputFmk(props) {
                     <Text style={stylesGral.errorText}>{error}</Text>
                 ) : null}
             </View>
-            <Input {...props} />
+            <Input {...props} ref={ref}/>
         </>
     )
 }
+
+export default forwardRef(TextInputFmk);

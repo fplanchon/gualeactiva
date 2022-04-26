@@ -20,7 +20,8 @@ const stylesGral = StyleSheet.create({
     },
     errorText: {
         color: estilosVar.rojoCrayola,
-        marginTop: 10
+        marginTop: 10,
+        fontSize: 12
     }
 })
 
