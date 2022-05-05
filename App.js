@@ -19,6 +19,7 @@ import axiosInstance from './app/utils/axiosInstance'
 import constantes from "./app/utils/constantes"
 import LoginStack from './app/navigations/LoginStack'
 import { navigationRef } from "./app/navigations/RootNavigation"
+import { CONSTANTS } from '@firebase/util';
 
 LogBox.ignoreAllLogs();
 
@@ -31,6 +32,7 @@ export default function App({ navigation }) {
         isLoading: true,
         loadingText: '',
         email: '',
+        datoUsr: '',
         userToken: null,
         isError: false,
         errorText: '',
@@ -42,6 +44,7 @@ export default function App({ navigation }) {
             case 'ERROR':
                 return {
                     ...prevState,
+                    datoUsr: null,
                     email: null,
                     userToken: null,
                     isLoading: false,
@@ -52,6 +55,7 @@ export default function App({ navigation }) {
             case 'PETICION':
                 return {
                     ...prevState,
+                    datoUsr: null,
                     isLoading: true,
                     loadingText: action.loadingText,
                     isError: false,
@@ -60,6 +64,7 @@ export default function App({ navigation }) {
             case 'RETRIEVE_TOKEN':
                 return {
                     ...prevState,
+                    datoUsr: null,
                     userToken: action.token,
                     isLoading: false,
                     loadingText: '',
@@ -69,6 +74,7 @@ export default function App({ navigation }) {
             case 'LOGIN':
                 return {
                     ...prevState,
+                    datoUsr: null,
                     email: action.id,
                     userToken: action.token,
                     isLoading: false,
@@ -79,6 +85,7 @@ export default function App({ navigation }) {
             case 'LOGOUT':
                 return {
                     ...prevState,
+                    datoUsr: null,
                     email: null,
                     userToken: null,
                     isLoading: false,
@@ -89,6 +96,7 @@ export default function App({ navigation }) {
             case 'REGISTER':
                 return {
                     ...prevState,
+                    datoUsr: null,
                     email: action.email,
                     userToken: action.token,
                     isLoading: false,
@@ -105,26 +113,43 @@ export default function App({ navigation }) {
         signIn: async (credenciales) => {
             let payload = null;
             let userToken = null;
-            const email = credenciales.email;
+            let email = '';
+            const datoUsr = credenciales.datoUsr;
             const password = credenciales.password;
+
             dispatch({ type: 'PETICION', loadingText: 'Iniciando Sesión...' });
 
             try {
+                if (!isNaN(datoUsr)) {
+                    const ciudadanoEmail = await axios.post(constantes.API + 'buscaEmailCiudadanoConDni', { dni: datoUsr });
+                    console.log(ciudadanoEmail);
+                    if (ciudadanoEmail.data.success) {
+                        email = ciudadanoEmail.data.data.email_activa;
+                    } else {
+                        dispatch({ type: 'ERROR', errorText: ciudadanoEmail.data.error });
+                    }
+
+                } else {
+                    email = datoUsr;
+                }
+
                 //1 - Si existe en firebase, logg ok 
-                const auth = getAuth();
-                await signInWithEmailAndPassword(
-                    auth,
-                    email,
-                    password,
-                );
-                //onsole.log('AUTHfirebase', auth);
+                if (email !== '') {
+                    const auth = getAuth();
+                    await signInWithEmailAndPassword(
+                        auth,
+                        email,
+                        password,
+                    );
+                    console.log('AUTHfirebase', auth);
 
 
-                userToken = auth.currentUser.stsTokenManager.accessToken;
+                    userToken = auth.currentUser.stsTokenManager.accessToken;
 
-                payload = { email: email, token: userToken };
+                    payload = { email: email, token: userToken };
 
-                dispatch({ type: 'LOGIN', ...payload });
+                    dispatch({ type: 'LOGIN', ...payload });
+                }
             } catch (e) {
                 let errorMsj = '';
                 //2 - Si no existe en firebase, verifico en pim
@@ -135,7 +160,7 @@ export default function App({ navigation }) {
 
                     if (response.data.success) {
                         const PimUsuario = response.data.data;
-                        //console.log(PimUsuario);
+                        console.log('PimUsuario', PimUsuario);
                         const auth = getAuth();
 
                         await createUserWithEmailAndPassword(auth, email, password)
@@ -145,18 +170,18 @@ export default function App({ navigation }) {
                             .catch((error) => {
                                 const errorCode = error.code;
                                 const errorMessage = error.message;
-                                //console.log(errorCode);
-                                //console.log(errorMessage);
+                                console.log('createUserWithEmailAndPassword', errorCode);
+
                                 // ..
                             });
 
 
                         await updateProfile(getAuth().currentUser, { displayName: PimUsuario.id_ciudadano }).then(() => {
                             // Profile updated!
-                            authContext.signIn({ email: email, password: password });
+                            authContext.signIn({ datoUsr, password });
                             // ...
                         }).catch((error) => {
-                            //console.log('error updateProfile', error);
+                            console.log('error updateProfile', error);
                         });
 
                     } else {
@@ -168,10 +193,13 @@ export default function App({ navigation }) {
 
                 } else if (e.code === 'auth/invalid-email') {
                     errorMsj = 'Formato de email incorrecto';
+                    console.log(e);
                 } else if (e.code === 'auth/wrong-password') {
                     errorMsj = 'Contraseña incorrecta';
+                    console.log(e);
                 } else {
                     errorMsj = 'Ocurrió un error inesperado con el servicio de autenticación ' + e.code;
+                    console.log(e);
                 }
 
                 if (errorMsj !== '') {

@@ -1,15 +1,23 @@
 import React, { useState } from "react"
-import { View, Text, Button, ScrollView } from "react-native";
+import { View, Text, Button, ScrollView } from "react-native"
 import { AuthContext } from "../../contexts/AuthContext"
-import axiosInstance from "../../utils/axiosInstance";
-import useAxios from "../../customhooks/useAxios";
-import Loading from "../../componentes/Loading";
+import axiosInstance from "../../utils/axiosInstance"
+import useAxios from "../../customhooks/useAxios"
+import Loading from "../../componentes/Loading"
+import { useFirestore } from "../../customhooks/useFirestore"
+import { where } from "@firebase/firestore"
+
 
 export default function Home() {
-    const [data, setData] = useState(null);
-    const [pedir, setPedir] = useState(0);
-    const { authContext, loginState } = React.useContext(AuthContext);
-    const loginStateJson = JSON.stringify(loginState);
+    const [data, setData] = useState(null)
+    const [pedir, setPedir] = useState(0)
+    //const [usuariosInfo, setUsuariosInfo] = useState([])
+    const { data: dataFs, error: errorFs, loading: loadingFs, getDataColl, getDataDoc } = useFirestore()
+    const { data: resSet, error: errorSet, loading: loadingSet, setDocument, deleteDocument } = useFirestore()
+    // const { data: dataFs2, error: errorFs2, loading: loadingFs2, getDataDoc } = useFirestore()
+    const { authContext, loginState } = React.useContext(AuthContext)
+    const loginStateJson = JSON.stringify(loginState)
+
 
     const { res, err, loading, refetch } = useAxios({
         method: 'post',
@@ -20,19 +28,21 @@ export default function Home() {
             title: 'title',
             body: 'Sample text',
         },
-    });
+    })
 
-    React.useEffect(() => {
+    React.useEffect(async () => {
         if (pedir > 0) {
-            refetch();
+            refetch()
+
         }
 
         if (res !== null) {
-            setData(res.data);
+            setData(res.data)
             //console.log('home_useeffect')
             //console.log(res.data)
         }
-    }, [pedir]);
+    }, [pedir])
+
 
 
     /*React.useEffect(async () => {
@@ -40,10 +50,10 @@ export default function Home() {
         //const algo = await axiosInstance.post('/juegopreguntas/consultas/obtenerCategorias', { algo: 'qwerty' })
         
         if (algo) {
-            console.log(algo);
+            console.log(algo)
         }
-
-    }, [pedir]);*/
+    
+    }, [pedir])*/
 
     return (
         <ScrollView>
@@ -62,12 +72,40 @@ export default function Home() {
                     (<Text>{JSON.stringify(data)}</Text>)
 
             )}
+
+            <Text>****USUARIOS****</Text>
+            {loadingFs ? (
+                <Text>loading Firestore...</Text>
+            ) : (
+                errorFs ? (
+                    <Text>Error Firestore: {errorFs}</Text>
+                ) :
+                    (<Text>{JSON.stringify(dataFs)}</Text>)
+            )}
+            <Text>****/USUARIOS****</Text>
+
             <Button title="Cerrar Sesión" onPress={() => authContext.signOut()} />
             <Button title="Consultar" onPress={() => { setPedir(pedir + 1) }} />
+            <Button title="Buscar Usrs Firebase" color="#66f4fa" onPress={() => getDataColl('usuariosInfo', [where('id_ciudadano', '==', 333)])} />
+            <Button title="Buscar un Usuario" color="#4fa" onPress={() => getDataDoc('usuariosInfo', 'zDB2P3ZXqkdSJBjZSs07DHLtCqs1')} />
+
+            <Text>****SETTER****</Text>
+            {loadingSet ? (
+                <Text>loading Firestore...</Text>
+            ) : (
+                errorSet ? (
+                    <Text>Error Firestore: {errorSet}</Text>
+                ) :
+                    (<Text>{JSON.stringify(resSet)}</Text>)
+            )}
+            <Text>****/SETTER****</Text>
+
+            <Button title="Set Usuario" color="#ff4444" onPress={() => setDocument('usuariosInfo', 'zDB2P3ZXqkdSJBjZSs07DHLtCqs1', { id_ciudadano: 999, nombres: 'aww' })} />
+            <Button title="Borrar un Usuario" color="#ff4" onPress={() => deleteDocument('usuariosInfo', 'zDB2P3ZXqkdSJBjZSs07DHLtCqs1')} />
             {loading ? (
                 <Loading isLoading={true} text={"Consultando..."} />
             ) : null}
         </ScrollView>
-    );
+    )
 
 }

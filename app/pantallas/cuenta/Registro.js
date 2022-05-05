@@ -14,15 +14,18 @@ import SubmitBtnFmk from "../../componentes/SubmitBtnFmk";
 import Loading from "../../componentes/Loading";
 //import axiosInstance from "../../utils/axiosInstance";
 //import { Button } from "react-native-elements/dist/buttons/Button";
-import { initFirebase } from "../../utils"
+import { dbFirebase } from "../../utils/firebase-config"
 import { getAuth, createUserWithEmailAndPassword, updateProfile, deleteUser } from 'firebase/auth'
+import { setDoc, doc } from 'firebase/firestore'
 import estilosVar from "../../utils/estilos";
 import { cuilValidator, expRegulares } from "../../utils/validaciones";
-
+import { useTraducirFirebaseError } from "../../customhooks/useTraducirFirebaseError";
+import { dbFirestore } from "../../utils";
 
 export default function Registro() {
     const [dataPicker, setDataPicker] = useState(false)
     const [datePlaceHolder, setDatePlaceHolder] = useState(null)
+
 
     const Inputs = {
         nombre: useRef(null),
@@ -89,6 +92,8 @@ export default function Registro() {
         data: dataRegistro
     })
 
+
+
     useEffect(() => {
         //console.log('useEffect pedir')
         if (pedir > 0) {
@@ -101,16 +106,16 @@ export default function Registro() {
                     .then((userCredential) => {
                         //console.log('refetch()')
                         refetch()
-
                     })
                     .catch((error) => {
 
                         /*deleteUser(getAuth().currentUser).then(() => {
-
+ 
                         }).catch((error) => {
                             console.log('error borrarUsuario', error);
                         });*/
-                        setFirebaseError(error)
+                        setFirebaseError(error.message)
+                        // useTraducirFirebaseError(error)
                     });
             }
 
@@ -130,14 +135,25 @@ export default function Registro() {
                         const pass = res.data.data.pass
                         //console.log(res.data.data.dni, res.data.data.pass, res.data.data.id_ciudadano)
 
-                        await updateProfile(getAuth().currentUser, { displayName: res.data.data.id_ciudadano }).then(() => {
+                        await updateProfile(getAuth().currentUser, { displayName: res.data.data.id_ciudadano }).then(async () => {
                             // Profile updated!
-                            authContext.signIn({ email: email, password: pass })
+
+
+
+
                             // ...
                         }).catch((error) => {
                             //console.log('error updateProfile', error);
                         });
 
+                        await setDoc(doc(dbFirestore, "usuariosInfo", getAuth().currentUser.uid), {
+                            'id_ciudadano': res.data.data.id_ciudadano
+                        }).then(() => {
+
+                            authContext.signIn({ datoUsr: email, password: pass })
+                        }).catch((error) => {
+                            console.log(error)
+                        });
                     } else {
                         await deleteUser(getAuth().currentUser).then(() => {
 
@@ -164,10 +180,7 @@ export default function Registro() {
 
     const submitRegistro = (values, formikActions) => {
         //console.log('submitRegistro')
-
         setDataRegistro(values)
-
-
         setPedir(pedir + 1)
         formikActions.setSubmitting(false)
     }
