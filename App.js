@@ -10,7 +10,7 @@ import { AuthContext } from "./app/contexts/AuthContext"
 import AsyncStorage from '@react-native-async-storage/async-storage'
 
 import { initFirebase } from "./app/utils"
-import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth'
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile, signOut } from 'firebase/auth'
 import estilosVar from "./app/utils/estilos"
 import Loading from "./app/componentes/Loading"
 import HomeStack from "./app/navigations/HomeStack"
@@ -19,14 +19,16 @@ import axiosInstance from './app/utils/axiosInstance'
 import constantes from "./app/utils/constantes"
 import LoginStack from './app/navigations/LoginStack'
 import { navigationRef } from "./app/navigations/RootNavigation"
-import { CONSTANTS } from '@firebase/util';
+import { useFirestore } from './app/customhooks/useFirestore';
 
 LogBox.ignoreAllLogs();
 
 export default function App({ navigation }) {
     const RootStack = createNativeStackNavigator();
 
-
+    const { setDocument } = useFirestore()
+    const { data: dataUsrFs, error: errorUsrFs, loading: loadingUsrFs, getDataDoc: getDataDocUsrFs } = useFirestore()
+    const colUsuariosInfo = constantes.colecciones.usuariosInfo;
 
     const initialLoginState = {
         isLoading: true,
@@ -34,10 +36,10 @@ export default function App({ navigation }) {
         email: '',
         datoUsr: '',
         userToken: null,
+        usuarioInfoFs: null,
         isError: false,
         errorText: '',
     };
-
 
     const loginReducer = (prevState, action) => {
         switch (action.type) {
@@ -47,6 +49,7 @@ export default function App({ navigation }) {
                     datoUsr: null,
                     email: null,
                     userToken: null,
+                    usuarioInfoFs: null,
                     isLoading: false,
                     loadingText: '',
                     isError: true,
@@ -75,9 +78,10 @@ export default function App({ navigation }) {
                 return {
                     ...prevState,
                     datoUsr: null,
-                    email: action.id,
+                    email: action.email,
                     userToken: action.token,
                     isLoading: false,
+                    usuarioInfoFs: action.usuarioInfo,
                     loadingText: '',
                     isError: false,
                     errorText: '',
@@ -89,6 +93,7 @@ export default function App({ navigation }) {
                     email: null,
                     userToken: null,
                     isLoading: false,
+                    usuarioInfoFs: null,
                     loadingText: '',
                     isError: false,
                     errorText: '',
@@ -99,6 +104,7 @@ export default function App({ navigation }) {
                     datoUsr: null,
                     email: action.email,
                     userToken: action.token,
+                    usuarioInfoFs: null,
                     isLoading: false,
                     loadingText: '',
                     isError: false,
@@ -109,11 +115,13 @@ export default function App({ navigation }) {
 
     const [loginState, dispatch] = React.useReducer(loginReducer, initialLoginState);
 
+
     const authContext = React.useMemo(() => ({
         signIn: async (credenciales) => {
             let payload = null;
             let userToken = null;
             let email = '';
+            let usuarioInfoFs = null;
             const datoUsr = credenciales.datoUsr;
             const password = credenciales.password;
 
@@ -122,10 +130,11 @@ export default function App({ navigation }) {
             try {
                 if (!isNaN(datoUsr)) {
                     const ciudadanoEmail = await axios.post(constantes.API + 'buscaEmailCiudadanoConDni', { dni: datoUsr });
-                    console.log(ciudadanoEmail);
+                    //console.log('ciudadanoEmail', ciudadanoEmail);
                     if (ciudadanoEmail.data.success) {
                         email = ciudadanoEmail.data.data.email_activa;
                     } else {
+                        //email = 'email@email.com';
                         dispatch({ type: 'ERROR', errorText: ciudadanoEmail.data.error });
                     }
 
@@ -141,12 +150,16 @@ export default function App({ navigation }) {
                         email,
                         password,
                     );
-                    console.log('AUTHfirebase', auth);
+                    console.log('AUTHfirebase', auth.currentUser);
 
 
                     userToken = auth.currentUser.stsTokenManager.accessToken;
 
-                    payload = { email: email, token: userToken };
+                    getDataDocUsrFs(colUsuariosInfo, auth.currentUser.uid)
+
+
+                    payload = { email: email, token: userToken, usuarioInfo: dataUsrFs };
+
 
                     dispatch({ type: 'LOGIN', ...payload });
                 }
@@ -160,7 +173,7 @@ export default function App({ navigation }) {
 
                     if (response.data.success) {
                         const PimUsuario = response.data.data;
-                        console.log('PimUsuario', PimUsuario);
+                        //console.log('PimUsuario', PimUsuario);
                         const auth = getAuth();
 
                         await createUserWithEmailAndPassword(auth, email, password)
@@ -176,12 +189,22 @@ export default function App({ navigation }) {
                             });
 
 
-                        await updateProfile(getAuth().currentUser, { displayName: PimUsuario.id_ciudadano }).then(() => {
+                        await updateProfile(getAuth().currentUser, { displayName: PimUsuario.nombres }).then(() => {
                             // Profile updated!
                             authContext.signIn({ datoUsr, password });
                             // ...
                         }).catch((error) => {
                             console.log('error updateProfile', error);
+                        });
+
+                        await setDocument(colUsuariosInfo, getAuth().currentUser.uid, {
+                            'id_ciudadano': PimUsuario.id_ciudadano,
+                            'nombres': PimUsuario.nombres,
+                            'cuitcuil': PimUsuario.cuitcuil
+                        }).then(() => {
+
+                        }).catch((error) => {
+                            console.log('setDocument ln196: ', error);
                         });
 
                     } else {
@@ -206,9 +229,6 @@ export default function App({ navigation }) {
                     dispatch({ type: 'ERROR', errorText: errorMsj });
                 }
             }
-
-
-
         },
         signOut: async () => {
             /*try {
@@ -219,7 +239,12 @@ export default function App({ navigation }) {
             } catch (e) {
                 console.log(e);
             }*/
-
+            const auth = getAuth()
+            signOut(auth).then(() => {
+                // Sign-out successful.
+            }).catch((error) => {
+                // An error happened.
+            });
             dispatch({ type: 'LOGOUT' });
         },
         signUp: () => {
@@ -239,6 +264,9 @@ export default function App({ navigation }) {
             if (result) {
                 return result.data;
             }
+        },
+        dispatchManual: (tipo, payload) => {
+            dispatch({ type: tipo, ...payload });
         }
     }), []);
 
@@ -247,6 +275,8 @@ export default function App({ navigation }) {
             let userToken;
             userToken = null;
             try {
+                const auth = getAuth()
+                userToken = auth.currentUser.accessToken
                 //userToken = await AsyncStorage.getItem('userToken');
             } catch (e) {
                 //console.log(e);
@@ -288,7 +318,8 @@ export default function App({ navigation }) {
     );
 
 
-}
+}//APP
+
 function screenOption(route, color) {
     let iconName;
 

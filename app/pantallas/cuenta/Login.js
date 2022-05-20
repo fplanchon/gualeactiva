@@ -6,12 +6,17 @@ import estilosvar from "../../utils/estilos";
 import stylesGral from "../../utils/StyleSheetGeneral";
 import { useNavigation } from "@react-navigation/native";
 
+
+
+
+
 export default function Login() {
     const [datoUsr, setDatoUsr] = React.useState('');
     const [password, setPassword] = React.useState('');
     const [showPass, setShowPass] = React.useState(false);
     const { authContext, loginState } = React.useContext(AuthContext);
     const navigation = useNavigation();
+
 
     const handleDatoUsr = (e) => {
         setDatoUsr(e.nativeEvent.text)
@@ -20,6 +25,8 @@ export default function Login() {
     const handlePass = (e) => {
         setPassword(e.nativeEvent.text)
     }
+
+
 
     return (
         <ScrollView>

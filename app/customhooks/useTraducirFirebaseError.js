@@ -1,28 +1,26 @@
-export const useTraducirFirebaseError = (error, defaultError = '') => {
-    const [msjFbError, setMsjFbError] = useState(false);
+import { useReducer } from "react";
 
-    switch (error.code) {
-        case '':
-            setMsjFbError(false)
-            break
-        case 'auth/email-alredy-in-use':
-            setMsjFbError('Email registrado por otro usuario')
-            break
-        case 'auth/invalid-email':
-            setMsjFbError('Formato de email incorrecto')
-            break
-        case 'auth/wrong-password':
-            setMsjFbError('Contraseña incorrecta')
-            break
-        default:
-            if (defaultError !== '') {
-                setMsjFbError(defaultError);
-            } else {
-                setMsjFbError(error.code)
-            }
+export const useTraducirFirebaseError = () => {
+    const initialState = false;
 
-            break;
+    function reducer(state, action) {
+        console.log('action', action)
+        switch (action.type) {
+            case '':
+            case null:
+                return false
+            case 'auth/email-already-in-use':
+                return 'Email registrado por otro usuario'
+            case 'auth/invalid-email':
+                return 'Formato de email incorrecto'
+            case 'auth/wrong-password':
+                return 'Contraseña incorrecta'
+            default:
+                return action.type
+        }
     }
 
-    return { msjFbError }
+    const [state, dispatch] = useReducer(reducer, initialState);
+
+    return { state, dispatch }
 }

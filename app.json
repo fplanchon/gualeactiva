@@ -23,12 +23,21 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#FFFFFF"
-      }
+      },
+      "package": "com.muchigchu.gualeactivados"
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "description": "Login y useAxios Hook",
-    "githubUrl": "https://github.com/fplanchon/gualeactiva.git"
+    "description": "Login y useFirestore",
+    "githubUrl": "https://github.com/fplanchon/gualeactiva.git",
+    "plugins": [
+      [
+        "expo-facebook",
+        {
+          "userTrackingPermission": false
+        }
+      ]
+    ]
   }
 }

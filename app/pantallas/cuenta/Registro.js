@@ -6,26 +6,39 @@ import * as Yup from 'yup'
 import { Formik } from 'formik'
 import { AuthContext } from "../../contexts/AuthContext";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
-
+import axios from 'axios';
 import useAxiosNoToken from "../../customhooks/useAxiosNoToken";
 import stylesGral from "../../utils/StyleSheetGeneral";
 import TextInputFmk from "../../componentes/TextInputFmk";
 import SubmitBtnFmk from "../../componentes/SubmitBtnFmk";
 import Loading from "../../componentes/Loading";
-//import axiosInstance from "../../utils/axiosInstance";
-//import { Button } from "react-native-elements/dist/buttons/Button";
-import { dbFirebase } from "../../utils/firebase-config"
+
 import { getAuth, createUserWithEmailAndPassword, updateProfile, deleteUser } from 'firebase/auth'
-import { setDoc, doc } from 'firebase/firestore'
+
 import estilosVar from "../../utils/estilos";
 import { cuilValidator, expRegulares } from "../../utils/validaciones";
 import { useTraducirFirebaseError } from "../../customhooks/useTraducirFirebaseError";
-import { dbFirestore } from "../../utils";
+import { useFirestore } from "../../customhooks/useFirestore";
+import constantes from "../../utils/constantes";
 
 export default function Registro() {
     const [dataPicker, setDataPicker] = useState(false)
     const [datePlaceHolder, setDatePlaceHolder] = useState(null)
+    const { authContext } = useContext(AuthContext);
 
+    const [dataRegistro, setDataRegistro] = useState(registroInitialState)
+    const [pedir, setPedir] = useState(0)
+    const [pedirCiud, setPedirCiud] = useState(0)
+    //const [dniAutocompletar, setDniAutocompletar] = useState(null)
+
+    const { state: firebaseError, dispatch: dispatchFirebaseError } = useTraducirFirebaseError()
+
+    const [showPassword1, setShowPassword1] = useState(true)
+    const [showPassword2, setShowPassword2] = useState(true)
+
+    const { setDocument, deleteDocument } = useFirestore()
+
+    const colUsuariosInfo = constantes.colecciones.usuariosInfo;
 
     const Inputs = {
         nombre: useRef(null),
@@ -50,15 +63,7 @@ export default function Registro() {
         confirmaPass: '',
     }
 
-    const { authContext } = useContext(AuthContext);
 
-    const [dataRegistro, setDataRegistro] = useState(registroInitialState)
-    const [pedir, setPedir] = useState(0)
-
-    const [firebaseError, setFirebaseError] = useState(false)
-
-    const [showPassword1, setShowPassword1] = useState(true)
-    const [showPassword2, setShowPassword2] = useState(true)
 
     const handleDatePicker = () => setDataPicker(!dataPicker)
     const handleConfirm = (e) => {
@@ -93,6 +98,20 @@ export default function Registro() {
     })
 
 
+    const eliminarUsuarioEnAuthYFirestore = async () => {
+        const uid = getAuth().currentUser.uid
+        await deleteUser(getAuth().currentUser).then(() => {
+
+        }).catch((error) => {
+            //console.log('error borrarUsuario en perfil success false', error);
+        });
+
+        await deleteDocument(colUsuariosInfo, uid)
+    }
+
+    const crearUsuarioEnAuthYFirestore = () => {
+
+    }
 
     useEffect(() => {
         //console.log('useEffect pedir')
@@ -101,7 +120,7 @@ export default function Registro() {
             const registrar = async () => {
                 // console.log('registrar()')
                 const auth = getAuth();
-                setFirebaseError(false);
+                dispatchFirebaseError(false);
                 await createUserWithEmailAndPassword(auth, dataRegistro.email, dataRegistro.pass)
                     .then((userCredential) => {
                         //console.log('refetch()')
@@ -114,7 +133,7 @@ export default function Registro() {
                         }).catch((error) => {
                             console.log('error borrarUsuario', error);
                         });*/
-                        setFirebaseError(error.message)
+                        dispatchFirebaseError({ type: error.code })
                         // useTraducirFirebaseError(error)
                     });
             }
@@ -135,38 +154,27 @@ export default function Registro() {
                         const pass = res.data.data.pass
                         //console.log(res.data.data.dni, res.data.data.pass, res.data.data.id_ciudadano)
 
-                        await updateProfile(getAuth().currentUser, { displayName: res.data.data.id_ciudadano }).then(async () => {
+                        await updateProfile(getAuth().currentUser, { displayName: dataRegistro.apellido + ' ' + dataRegistro.nombre }).then(async () => {
                             // Profile updated!
-
-
-
-
                             // ...
                         }).catch((error) => {
-                            //console.log('error updateProfile', error);
+                            //console.log('derror updateProfile', error);
                         });
 
-                        await setDoc(doc(dbFirestore, "usuariosInfo", getAuth().currentUser.uid), {
-                            'id_ciudadano': res.data.data.id_ciudadano
+                        await setDocument(colUsuariosInfo, getAuth().currentUser.uid, {
+                            'id_ciudadano': res.data.data.id_ciudadano,
+                            'nombres': dataRegistro.apellido + ' ' + dataRegistro.nombre,
+                            'cuitcuil': dataRegistro.cuitcuil
                         }).then(() => {
-
                             authContext.signIn({ datoUsr: email, password: pass })
                         }).catch((error) => {
                             console.log(error)
                         });
                     } else {
-                        await deleteUser(getAuth().currentUser).then(() => {
-
-                        }).catch((error) => {
-                            //console.log('error borrarUsuario en perfil', error);
-                        });
+                        eliminarUsuarioEnAuthYFirestore()
                     }
                 } else {
-                    await deleteUser(getAuth().currentUser).then(() => {
-
-                    }).catch((error) => {
-                        //console.log('error borrarUsuario en perfil success false', error);
-                    });
+                    eliminarUsuarioEnAuthYFirestore()
                 }
             }
         }
@@ -174,8 +182,27 @@ export default function Registro() {
         effectRes()
     }, [res])
 
-
-
+    const handleEditDni = async (values) => {
+        //values.nombre = 'asasas'
+        try {
+            const CiudParaAutocompletar = await axios.post(constantes.API + 'buscarCiudParaAutocompletar', { dni: values.dni })
+            //console.log('CiudParaAutocompletar', CiudParaAutocompletar.data)
+            if (CiudParaAutocompletar.data.data !== null) {
+                let AutoCiud = CiudParaAutocompletar.data.data
+                values.nombre = AutoCiud['nombre']
+                values.apellido = AutoCiud['apellido']
+                values.cuitcuil = AutoCiud['cuitcuil']
+                values.celular = AutoCiud['telefono']
+                values.fechaNacimiento = AutoCiud['fecha_nacimiento']
+                values.email = AutoCiud['email_activa']
+                Inputs.cuitcuil.current.focus()
+                Inputs.cuitcuil.current.focus()
+                //doble para que impacte el autocompletado
+            }
+        } catch (error) {
+            console.log('err', error)
+        }
+    }
 
 
     const submitRegistro = (values, formikActions) => {
@@ -195,6 +222,30 @@ export default function Registro() {
             >
                 {({ values, isSubmitting, errors, touched, isValid, handleBlur, handleChange, handleSubmit }) => (
                     <>
+                        <TextInputFmk
+                            name="dni"
+                            placeholder="Número de documento"
+                            slabel="Número de documento"
+                            error={touched.dni && errors.dni}
+                            onChangeText={handleChange('dni')}
+                            onBlur={handleBlur('dni')}
+                            value={values.dni}
+                            keyboardType='number-pad'
+                            ref={Inputs.dni}
+                            onSubmitEditing={() => { handleEditDni(values) }} blurOnSubmit={false}
+                        />
+                        <TextInputFmk
+                            name="cuitcuil"
+                            placeholder="Cuit/Cuil"
+                            slabel="Cuit/Cuil"
+                            error={touched.cuitcuil && errors.cuitcuil}
+                            onChangeText={handleChange('cuitcuil')}
+                            onBlur={handleBlur('cuitcuil')}
+                            value={values.cuitcuil}
+                            keyboardType='number-pad'
+                            ref={Inputs.cuitcuil}
+                            onSubmitEditing={() => { Inputs.email.current.focus(); }} blurOnSubmit={false}
+                        />
                         <TextInputFmk
                             name="nombre"
                             placeholder="Nombre"
@@ -217,30 +268,7 @@ export default function Registro() {
                             ref={Inputs.apellido}
                             onSubmitEditing={() => { Inputs.dni.current.focus(); }} blurOnSubmit={false}
                         />
-                        <TextInputFmk
-                            name="dni"
-                            placeholder="Número de documento"
-                            slabel="Número de documento"
-                            error={touched.dni && errors.dni}
-                            onChangeText={handleChange('dni')}
-                            onBlur={handleBlur('dni')}
-                            value={values.dni}
-                            keyboardType='number-pad'
-                            ref={Inputs.dni}
-                            onSubmitEditing={() => { Inputs.cuitcuil.current.focus(); }} blurOnSubmit={false}
-                        />
-                        <TextInputFmk
-                            name="cuitcuil"
-                            placeholder="Cuit/Cuil"
-                            slabel="Cuit/Cuil"
-                            error={touched.cuitcuil && errors.cuitcuil}
-                            onChangeText={handleChange('cuitcuil')}
-                            onBlur={handleBlur('cuitcuil')}
-                            value={values.cuitcuil}
-                            keyboardType='number-pad'
-                            ref={Inputs.cuitcuil}
-                            onSubmitEditing={() => { Inputs.email.current.focus(); }} blurOnSubmit={false}
-                        />
+
                         <TextInputFmk
                             name="email"
                             placeholder="Email"
