@@ -1,32 +1,35 @@
 import React, { useEffect, useContext, useState, useRef } from "react"
-
 import { ScrollView, StyleSheet, View } from "react-native";
-import { Text, Icon } from "react-native-elements";
+
+import { Text, Icon, Input } from "react-native-elements";
+import { getAuth, createUserWithEmailAndPassword, updateProfile, deleteUser,PhoneAuthProvider, fetchSignInMethodsForEmail } from 'firebase/auth'
+import { setDoc, doc } from 'firebase/firestore'
 import * as Yup from 'yup'
 import { Formik } from 'formik'
-import { AuthContext } from "../../contexts/AuthContext";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
+import { FirebaseRecaptchaVerifierModal } from 'expo-firebase-recaptcha';
 
+import { AuthContext } from "../../contexts/AuthContext";
 import useAxiosNoToken from "../../customhooks/useAxiosNoToken";
 import stylesGral from "../../utils/StyleSheetGeneral";
+import { getApp,initFirebase } from "../../utils/firebase-config"
+import estilosVar from "../../utils/estilos";
+import { dbFirestore } from "../../utils";
+import { cuilValidator, expRegulares } from "../../utils/validaciones";
 import TextInputFmk from "../../componentes/TextInputFmk";
 import SubmitBtnFmk from "../../componentes/SubmitBtnFmk";
 import Loading from "../../componentes/Loading";
-//import axiosInstance from "../../utils/axiosInstance";
-//import { Button } from "react-native-elements/dist/buttons/Button";
-import { dbFirebase } from "../../utils/firebase-config"
-import { getAuth, createUserWithEmailAndPassword, updateProfile, deleteUser } from 'firebase/auth'
-import { setDoc, doc } from 'firebase/firestore'
-import estilosVar from "../../utils/estilos";
-import { cuilValidator, expRegulares } from "../../utils/validaciones";
-import { useTraducirFirebaseError } from "../../customhooks/useTraducirFirebaseError";
-import { dbFirestore } from "../../utils";
+import ModalComp from "../../componentes/ModalComp";
 
-export default function Registro() {
-    const [dataPicker, setDataPicker] = useState(false)
-    const [datePlaceHolder, setDatePlaceHolder] = useState(null)
-
-
+export default function Registro({route}) {
+    const app = getApp();
+    const auth = getAuth(initFirebase);
+    const { authContext } = useContext(AuthContext);
+    const { res, err, loading, refetch } = useAxiosNoToken({
+        method: 'post',
+        url: '/registrarCiudadano',
+        data: dataRegistro
+    })
     const Inputs = {
         nombre: useRef(null),
         apellido: useRef(null),
@@ -38,7 +41,6 @@ export default function Registro() {
         pass: useRef(null),
         confirmaPass: useRef(null)
     }
-
     const registroInitialState = {
         nombre: '',
         apellido: '',
@@ -49,16 +51,21 @@ export default function Registro() {
         fechaNacimiento: '',
         confirmaPass: '',
     }
+    const [dataRegistro, setDataRegistro] = useState(registroInitialState);
 
-    const { authContext } = useContext(AuthContext);
+    // Proveedor
+    const [userProvider, setUserProvider] = useState();
 
-    const [dataRegistro, setDataRegistro] = useState(registroInitialState)
-    const [pedir, setPedir] = useState(0)
-
-    const [firebaseError, setFirebaseError] = useState(false)
-
+    // Visual
     const [showPassword1, setShowPassword1] = useState(true)
     const [showPassword2, setShowPassword2] = useState(true)
+    const [firebaseError, setFirebaseError] = useState(false);
+    const [errorExistInFirebase, setErrorExistInFirebase] = useState({ message: "", errorShow: false });
+    const recaptchaVerifier = useRef(null);
+    const [dataPicker, setDataPicker] = useState(false)
+    const [datePlaceHolder, setDatePlaceHolder] = useState(null)
+    const [stateModal, setStateModal] = useState(false);
+    const [codigo, setCodigo] = useState(null);
 
     const handleDatePicker = () => setDataPicker(!dataPicker)
     const handleConfirm = (e) => {
@@ -67,12 +74,10 @@ export default function Registro() {
         let fechaSeleccionada = changeFormatDate(string)
         dataRegistro.fechaNacimiento = fechaSeleccionada;
 
-        //setDatePlaceHolder(dataRegistro.fechaNacimiento);
         handleDatePicker()
     }
-
+    
     const sEsRequerido = 'Es Requerido';
-
     const registroValidationSchema = Yup.object({
         nombre: Yup.string().trim().min(2, 'Nombre demasiado corto').required(sEsRequerido),
         apellido: Yup.string().trim().required(sEsRequerido),
@@ -86,22 +91,24 @@ export default function Registro() {
 
     })
 
-    const { res, err, loading, refetch } = useAxiosNoToken({
-        method: 'post',
-        url: '/registrarCiudadano',
-        data: dataRegistro
-    })
-
-
+    const [pedir, setPedir] = useState(0);
 
     useEffect(() => {
-        //console.log('useEffect pedir')
+        route.params?.user_data && setUserProvider(route.params?.user_data.providerData);
+        
         if (pedir > 0) {
-
             const registrar = async () => {
-                // console.log('registrar()')
-                const auth = getAuth();
+                /* Validar celular*/
                 setFirebaseError(false);
+                if (dataRegistro.celular && dataRegistro.celular !== null) {
+                    const phoneProvider = new PhoneAuthProvider(auth);
+                    const verificationId = await phoneProvider.verifyPhoneNumber( "+54" + dataRegistro.celular, recaptchaVerifier.current );
+                    console.log("Verificacion ID:", verificationId);
+                    /* RootNavigation.navigate("VerificarCodigo", {
+                        vID: verificationId,
+                    }); */
+                }
+
                 await createUserWithEmailAndPassword(auth, dataRegistro.email, dataRegistro.pass)
                     .then((userCredential) => {
                         //console.log('refetch()')
@@ -110,7 +117,7 @@ export default function Registro() {
                     .catch((error) => {
 
                         /*deleteUser(getAuth().currentUser).then(() => {
- 
+
                         }).catch((error) => {
                             console.log('error borrarUsuario', error);
                         });*/
@@ -135,18 +142,14 @@ export default function Registro() {
                         const pass = res.data.data.pass
                         //console.log(res.data.data.dni, res.data.data.pass, res.data.data.id_ciudadano)
 
-                        await updateProfile(getAuth().currentUser, { displayName: res.data.data.id_ciudadano }).then(async () => {
+                        await updateProfile(auth.currentUser, { displayName: res.data.data.id_ciudadano }).then(async () => {
                             // Profile updated!
-
-
-
-
                             // ...
                         }).catch((error) => {
                             //console.log('error updateProfile', error);
                         });
 
-                        await setDoc(doc(dbFirestore, "usuariosInfo", getAuth().currentUser.uid), {
+                        await setDoc(doc(dbFirestore, "usuariosInfo", auth.currentUser.uid), {
                             'id_ciudadano': res.data.data.id_ciudadano
                         }).then(() => {
 
@@ -155,14 +158,14 @@ export default function Registro() {
                             console.log(error)
                         });
                     } else {
-                        await deleteUser(getAuth().currentUser).then(() => {
+                        await deleteUser(auth.currentUser).then(() => {
 
                         }).catch((error) => {
                             //console.log('error borrarUsuario en perfil', error);
                         });
                     }
                 } else {
-                    await deleteUser(getAuth().currentUser).then(() => {
+                    await deleteUser(auth.currentUser).then(() => {
 
                     }).catch((error) => {
                         //console.log('error borrarUsuario en perfil success false', error);
@@ -174,9 +177,34 @@ export default function Registro() {
         effectRes()
     }, [res])
 
+    const verificarSiExiste = (valor,hayError,tipo) => {
+        if(hayError === undefined){
+            console.log("Es un dato validado",valor)
+            if (tipo === "email") {
 
-
-
+                fetchSignInMethodsForEmail(auth,valor).then(res => {
+                    /*
+                    Devuelve s/ proveedor: Array [
+                        "google.com", o "password"
+                    ]
+                    */
+                    if (res.length !== 0) {
+                        // Si existe un usuario con ese correo
+                        setErrorExistInFirebase({
+                            message: "Ya existe una cuenta con este correo.",
+                            errorShow: true
+                        })
+                    }else{
+                        setErrorExistInFirebase({ message: "", errorShow: false });
+                    }
+                })
+            }else{
+                const number = "+54" + valor;
+                console.log("Numero",number)
+                console.log("Codigo",codigo);
+            }
+        }
+    }
 
     const submitRegistro = (values, formikActions) => {
         //console.log('submitRegistro')
@@ -188,6 +216,7 @@ export default function Registro() {
     return (
         <ScrollView style={stylesGral.formContainer}  >
             <Text h4 style={styles.titulo} >Registrate en GualeActiva</Text>
+            {userProvider === undefined || !stateModal ?
             <Formik
                 initialValues={registroInitialState}
                 validationSchema={registroValidationSchema}
@@ -248,10 +277,12 @@ export default function Registro() {
                             error={touched.email && errors.email}
                             onChangeText={handleChange('email')}
                             onBlur={handleBlur('email')}
+                            onEndEditing={(e) => verificarSiExiste(e.nativeEvent.text,errors.email,"email")}
                             value={values.email}
                             ref={Inputs.email}
                             onSubmitEditing={() => { Inputs.celular.current.focus(); }} blurOnSubmit={false}
                         />
+                        {errorExistInFirebase.errorShow && <Text style={styles.errorExistInFirebase}>{errorExistInFirebase.message}</Text>}
                         <TextInputFmk
                             name="celular"
                             placeholder="Celular"
@@ -260,6 +291,7 @@ export default function Registro() {
                             onChangeText={handleChange('celular')}
                             onBlur={handleBlur('celular')}
                             value={parseInt(values.celular[0]) === 0 ? values.celular.slice(1) : values.celular}
+                            onEndEditing={(e) => verificarSiExiste(e.nativeEvent.text,errors.celular,"celular")}
                             keyboardType='number-pad'
                             ref={Inputs.celular}
                             onSubmitEditing={() => { Inputs.fechaNacimiento.current.focus(); }} blurOnSubmit={false}
@@ -334,8 +366,7 @@ export default function Registro() {
                             }
                             ref={Inputs.confirmaPass}
                         />
-
-                        <SubmitBtnFmk submitting={isSubmitting} onPress={handleSubmit} title='Registrarme' />
+                        <SubmitBtnFmk submitting={isSubmitting} onPress={handleSubmit} title='Registrarme' disable={isValid} errorFir={errorExistInFirebase}/>
                         {(err) ?
                             <>
                                 <Text>Err axios</Text>
@@ -359,9 +390,29 @@ export default function Registro() {
                             </>
                             : null
                         }
+                        <FirebaseRecaptchaVerifierModal
+                            ref={recaptchaVerifier}
+                            firebaseConfig={app.options}
+                        />
                     </>
                 )}
             </Formik>
+            : <FormProvider handleDatePicker={handleDatePicker} dataPicker={dataPicker} userProvider={userProvider} registroInitialState={registroInitialState}/>
+            }
+            {stateModal && 
+                <ModalComp stateModal={stateModal} titulo="Verificar telefono">
+                    <Text>Ingrese el codigo recibido</Text>
+                    <Input
+                        placeholder="Codigo"
+                        containerStyle={styles.inputForm}
+                        rightIcon={
+                            <Icon type="material-community" name="cellphone-message" iconStyle={styles.iconRight} />
+                        }
+                        onChange={(e) => setCodigo(e.nativeEvent.text)}
+                    />
+                    <Button title="Verificar codigo" onPress={verificarSiExiste} style={styles.btnRegister}/>
+                </ModalComp>
+            }
             <Text>{pedir}</Text>
             {loading ? (
                 <Loading isLoading={true} text={"Consultando..."} />
@@ -370,6 +421,124 @@ export default function Registro() {
     )
 
 }
+
+const FormProvider = (props) => {
+    const Inputs = {
+        dni: useRef(null),
+        cuitcuil: useRef(null),
+        celular: useRef(null),
+        fechaNacimiento: useRef(null),
+    }
+
+    const registroValidationSchema = Yup.object({
+        dni: Yup.number().typeError('Ingrese solo números').required("Es Requerido").test("dni_valido", "El DNI no es válido", val => expRegulares.dni.test(val)),
+        cuitcuil: Yup.number().typeError('Ingrese solo números').required("Es Requerido").test("cuil_valido", "El CUIL no es válido", (val) => (val !== undefined) && cuilValidator(val.toString())),
+        celular: Yup.number().typeError('Ingrese solo números').required("Es Requerido").test("celular", 'Ingrese un celular correcto.', (val) => (val !== undefined) && expRegulares.cel.test(val.toString())),
+        fechaNacimiento: Yup.date().typeError('').required("Es Requerido"),
+    })
+
+    const handleSubmitProvider = (values) => {
+        const arrayDisplayName = props?.userProvider[0].displayName.split(' ');
+
+        const data = {
+            nombre: arrayDisplayName[0],
+            apellido: arrayDisplayName[1],
+            dni: values.dni,
+            cuitcuil: values.cuitcuil,
+            email: props.userProvider[0].email,
+            celular: values.celular,
+            fechaNacimiento: values.fechaNacimiento
+        }
+
+        console.log("Data:",data);
+    }
+
+    return (
+        <Formik
+            initialValues={props.registroInitialState}
+            validationSchema={registroValidationSchema}
+            onSubmit={handleSubmitProvider}
+        >
+        {({isSubmitting, touched, errors, handleChange, handleBlur, handleSubmit, values }) => (
+            <View>
+                <TextInputFmk
+                    name="dni"
+                    placeholder="Número de documento"
+                    slabel="Número de documento"
+                    onChangeText={handleChange("dni")}
+                    onBlur={handleBlur("dni")}
+                    value={values.dni}
+                    keyboardType="number-pad"
+                    error={touched.dni && errors.dni}
+                    ref={Inputs.dni}
+                    onSubmitEditing={() => { Inputs.cuitcuil.current.focus(); }} blurOnSubmit={false}
+                />
+                <TextInputFmk
+                    name="cuitcuil"
+                    placeholder="Cuit/Cuil"
+                    slabel="Cuit/Cuil"
+                    onChangeText={handleChange("cuitcuil")}
+                    onBlur={handleBlur("cuitcuil")}
+                    value={values.cuitcuil}
+                    keyboardType="number-pad"
+                    error={touched.cuitcuil && errors.cuitcuil}
+                    ref={Inputs.cuitcuil}
+                    onSubmitEditing={() => { Inputs.celular.current.focus(); }} blurOnSubmit={false}
+                />
+                <TextInputFmk
+                    name="celular"
+                    placeholder="Celular"
+                    slabel="Celular"
+                    onChangeText={handleChange("celular")}
+                    onBlur={handleBlur("celular")}
+                    value={values.celular}
+                    keyboardType="number-pad"
+                    error={touched.celular && errors.celular}
+                    ref={Inputs.celular}
+                    onSubmitEditing={() => { Inputs.fechaNacimiento.current.focus(); }} blurOnSubmit={false}
+                />
+                <View style={styles.iconRow}>
+                    <Icon style={styles.styleIcon} name="information" type="material-community" color={estilosVar.naranjaBitter} />
+                    <Text style={styles.textInfo}>Código de área sin "0" + Teléfono sin "15"</Text>
+                </View>
+                <TextInputFmk
+                    name="fechaNacimiento"
+                    placeholder="Fecha Nacimiento"
+                    slabel="Fecha Nacimiento"
+                    onChangeText={handleChange("fechaNacimiento")}
+                    onBlur={handleBlur("fechaNacimiento")}
+                    value={values.fechaNacimiento}
+                    error={touched.fechaNacimiento && errors.fechaNacimiento}
+                    rightIcon={
+                    <Icon
+                        type="material-community"
+                        name={
+                        values.fechaNacimiento ? "calendar-check" : "calendar-blank"
+                        }
+                        color={
+                        values.fechaNacimiento
+                            ? estilosVar.colorIconoActivo
+                            : estilosVar.colorIconoInactivo
+                        }
+                        onPress={props.handleDatePicker}
+                    />
+                    }
+                    ref={Inputs.fechaNacimiento}
+                />
+                {props.dataPicker && (
+                    <DateTimePickerModal
+                    isVisible={props.dataPicker}
+                    mode="date"
+                    onConfirm={handleConfirm}
+                    onCancel={props.handleDatePicker}
+                    />
+                )}
+                <SubmitBtnFmk submitting={isSubmitting} onPress={handleSubmit} title='Registrarme' />
+                </View>
+        )}
+        </Formik>
+    );
+};
 
 const changeFormatDate = (string) => {
     string = string.replace(/-/g, '/');
@@ -402,5 +571,19 @@ const styles = StyleSheet.create({
     textInfo: {
         height: 29,
         width: 265,
+    },
+    errorExistInFirebase: {
+        marginTop: -10,
+        marginLeft: 10,
+        marginBottom: 20,
+        color: estilosVar.rojoCrayola
+    },
+    inputForm: {
+        width: "100%",
+        marginTop: 20,
+    },
+    btnRegister: {
+        color: estilosVar.azulSuave,
+        fontWeight: "bold",
     },
 })

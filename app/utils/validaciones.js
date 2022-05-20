@@ -1,6 +1,7 @@
 export const expRegulares = {
   dni: /^[\d]{1,3}\.?[\d]{3,3}\.?[\d]{3,3}$/, // Coincide con un DNI con y sin puntos.
-  cel: /^(?!0)(?!15)(?:11|[2368]\d)??\d{8}$/  // No acepta +54, ni 0+codigo de area; es obligatorio el codigo de area y no acepta el uso del 15.
+  cel: /^(?!0)(?!15)(?:11|[2368]\d)??\d{8}$/,  // No acepta +54, ni 0+codigo de area; es obligatorio el codigo de area y no acepta el uso del 15.
+  cel2: /^(?!15)(?:11|[2368]\d)??\d{8}$/
 };
 
 export const cuilValidator = (cuil) => {

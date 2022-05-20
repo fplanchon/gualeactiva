@@ -1,4 +1,4 @@
-import { initializeApp } from "firebase/app"
+import { initializeApp,getApp } from "firebase/app"
 import { getAuth } from "firebase/auth"
 import { getFirestore } from "firebase/firestore"
 // TODO: Add SDKs for Firebase products that you want to use
@@ -20,4 +20,4 @@ const initFirebase = initializeApp(firebaseConfig)
 const auth = getAuth(initFirebase)
 const dbFirestore = getFirestore(initFirebase)
 
-export { initFirebase, auth, dbFirestore }
+export { initFirebase, auth, dbFirestore, getApp }

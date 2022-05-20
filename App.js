@@ -239,6 +239,9 @@ export default function App({ navigation }) {
             if (result) {
                 return result.data;
             }
+        },
+        dispatchManual: (tipo, payload) => {
+            dispatch({ type: tipo, ...payload });
         }
     }), []);
 

@@ -29,7 +29,12 @@
     "react-native-modal-datetime-picker": "*",
     "react-native-screens": "~3.10.1",
     "react-native-web": "0.17.1",
-    "yup": "^0.32.11"
+    "yup": "^0.32.11",
+    "expo-firebase-recaptcha": "~2.1.0",
+    "react-native-webview": "11.15.0",
+    "expo-web-browser": "~10.1.0",
+    "expo-auth-session": "~3.5.0",
+    "expo-random": "~12.1.1"
   },
   "devDependencies": {
     "@babel/core": "^7.12.9"
