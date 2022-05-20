@@ -3,28 +3,53 @@ import { ScrollView, StyleSheet, View } from "react-native";
 
 import { Text, Icon, Input } from "react-native-elements";
 import { getAuth, createUserWithEmailAndPassword, updateProfile, deleteUser,PhoneAuthProvider, fetchSignInMethodsForEmail } from 'firebase/auth'
-import { setDoc, doc } from 'firebase/firestore'
+//import { setDoc, doc } from 'firebase/firestore'
+import { getApp,initFirebase } from "../../utils/firebase-config"
 import * as Yup from 'yup'
 import { Formik } from 'formik'
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import { FirebaseRecaptchaVerifierModal } from 'expo-firebase-recaptcha';
-
 import { AuthContext } from "../../contexts/AuthContext";
+import axios from 'axios';
 import useAxiosNoToken from "../../customhooks/useAxiosNoToken";
 import stylesGral from "../../utils/StyleSheetGeneral";
-import { getApp,initFirebase } from "../../utils/firebase-config"
-import estilosVar from "../../utils/estilos";
-import { dbFirestore } from "../../utils";
-import { cuilValidator, expRegulares } from "../../utils/validaciones";
 import TextInputFmk from "../../componentes/TextInputFmk";
 import SubmitBtnFmk from "../../componentes/SubmitBtnFmk";
 import Loading from "../../componentes/Loading";
 import ModalComp from "../../componentes/ModalComp";
 
+import estilosVar from "../../utils/estilos";
+import { cuilValidator, expRegulares } from "../../utils/validaciones";
+import { useTraducirFirebaseError } from "../../customhooks/useTraducirFirebaseError";
+import { useFirestore } from "../../customhooks/useFirestore";
+import constantes from "../../utils/constantes";
+
 export default function Registro({route}) {
+    const { authContext } = useContext(AuthContext);
     const app = getApp();
     const auth = getAuth(initFirebase);
-    const { authContext } = useContext(AuthContext);
+
+    const registroInitialState = {
+        nombre: '',
+        apellido: '',
+        dni: null,
+        cuitcuil: null,
+        email: '',
+        celular: '',
+        fechaNacimiento: '',
+        confirmaPass: '',
+    }
+    const [dataRegistro, setDataRegistro] = useState(registroInitialState)
+    const [pedir, setPedir] = useState(0)
+    const [pedirCiud, setPedirCiud] = useState(0)
+    //const [dniAutocompletar, setDniAutocompletar] = useState(null)
+
+    const { state: firebaseError, dispatch: dispatchFirebaseError } = useTraducirFirebaseError()
+
+    const { setDocument, deleteDocument } = useFirestore()
+
+    const colUsuariosInfo = constantes.colecciones.usuariosInfo;
+
     const { res, err, loading, refetch } = useAxiosNoToken({
         method: 'post',
         url: '/registrarCiudadano',
@@ -41,17 +66,6 @@ export default function Registro({route}) {
         pass: useRef(null),
         confirmaPass: useRef(null)
     }
-    const registroInitialState = {
-        nombre: '',
-        apellido: '',
-        dni: null,
-        cuitcuil: null,
-        email: '',
-        celular: '',
-        fechaNacimiento: '',
-        confirmaPass: '',
-    }
-    const [dataRegistro, setDataRegistro] = useState(registroInitialState);
 
     // Proveedor
     const [userProvider, setUserProvider] = useState();
@@ -59,7 +73,6 @@ export default function Registro({route}) {
     // Visual
     const [showPassword1, setShowPassword1] = useState(true)
     const [showPassword2, setShowPassword2] = useState(true)
-    const [firebaseError, setFirebaseError] = useState(false);
     const [errorExistInFirebase, setErrorExistInFirebase] = useState({ message: "", errorShow: false });
     const recaptchaVerifier = useRef(null);
     const [dataPicker, setDataPicker] = useState(false)
@@ -91,13 +104,28 @@ export default function Registro({route}) {
 
     })
 
-    const [pedir, setPedir] = useState(0);
+    const eliminarUsuarioEnAuthYFirestore = async () => {
+        const uid = getAuth().currentUser.uid
+        await deleteUser(getAuth().currentUser).then(() => {
+
+        }).catch((error) => {
+            //console.log('error borrarUsuario en perfil success false', error);
+        });
+
+        await deleteDocument(colUsuariosInfo, uid)
+    }
+
+    const crearUsuarioEnAuthYFirestore = () => {
+
+    }
 
     useEffect(() => {
         route.params?.user_data && setUserProvider(route.params?.user_data.providerData);
         
         if (pedir > 0) {
             const registrar = async () => {
+                const auth = getAuth();
+                dispatchFirebaseError(false);
                 /* Validar celular*/
                 setFirebaseError(false);
                 if (dataRegistro.celular && dataRegistro.celular !== null) {
@@ -108,7 +136,6 @@ export default function Registro({route}) {
                         vID: verificationId,
                     }); */
                 }
-
                 await createUserWithEmailAndPassword(auth, dataRegistro.email, dataRegistro.pass)
                     .then((userCredential) => {
                         //console.log('refetch()')
@@ -121,7 +148,7 @@ export default function Registro({route}) {
                         }).catch((error) => {
                             console.log('error borrarUsuario', error);
                         });*/
-                        setFirebaseError(error.message)
+                        dispatchFirebaseError({ type: error.code })
                         // useTraducirFirebaseError(error)
                     });
             }
@@ -142,34 +169,27 @@ export default function Registro({route}) {
                         const pass = res.data.data.pass
                         //console.log(res.data.data.dni, res.data.data.pass, res.data.data.id_ciudadano)
 
-                        await updateProfile(auth.currentUser, { displayName: res.data.data.id_ciudadano }).then(async () => {
+                        await updateProfile(getAuth().currentUser, { displayName: dataRegistro.apellido + ' ' + dataRegistro.nombre }).then(async () => {
                             // Profile updated!
                             // ...
                         }).catch((error) => {
-                            //console.log('error updateProfile', error);
+                            //console.log('derror updateProfile', error);
                         });
 
-                        await setDoc(doc(dbFirestore, "usuariosInfo", auth.currentUser.uid), {
-                            'id_ciudadano': res.data.data.id_ciudadano
+                        await setDocument(colUsuariosInfo, getAuth().currentUser.uid, {
+                            'id_ciudadano': res.data.data.id_ciudadano,
+                            'nombres': dataRegistro.apellido + ' ' + dataRegistro.nombre,
+                            'cuitcuil': dataRegistro.cuitcuil
                         }).then(() => {
-
                             authContext.signIn({ datoUsr: email, password: pass })
                         }).catch((error) => {
                             console.log(error)
                         });
                     } else {
-                        await deleteUser(auth.currentUser).then(() => {
-
-                        }).catch((error) => {
-                            //console.log('error borrarUsuario en perfil', error);
-                        });
+                        eliminarUsuarioEnAuthYFirestore()
                     }
                 } else {
-                    await deleteUser(auth.currentUser).then(() => {
-
-                    }).catch((error) => {
-                        //console.log('error borrarUsuario en perfil success false', error);
-                    });
+                    eliminarUsuarioEnAuthYFirestore()
                 }
             }
         }
@@ -205,6 +225,27 @@ export default function Registro({route}) {
             }
         }
     }
+    const handleEditDni = async (values) => {
+        //values.nombre = 'asasas'
+        try {
+            const CiudParaAutocompletar = await axios.post(constantes.API + 'buscarCiudParaAutocompletar', { dni: values.dni })
+            //console.log('CiudParaAutocompletar', CiudParaAutocompletar.data)
+            if (CiudParaAutocompletar.data.data !== null) {
+                let AutoCiud = CiudParaAutocompletar.data.data
+                values.nombre = AutoCiud['nombre']
+                values.apellido = AutoCiud['apellido']
+                values.cuitcuil = AutoCiud['cuitcuil']
+                values.celular = AutoCiud['telefono']
+                values.fechaNacimiento = AutoCiud['fecha_nacimiento']
+                values.email = AutoCiud['email_activa']
+                Inputs.cuitcuil.current.focus()
+                Inputs.cuitcuil.current.focus()
+                //doble para que impacte el autocompletado
+            }
+        } catch (error) {
+            console.log('err', error)
+        }
+    }
 
     const submitRegistro = (values, formikActions) => {
         //console.log('submitRegistro')
@@ -224,6 +265,30 @@ export default function Registro({route}) {
             >
                 {({ values, isSubmitting, errors, touched, isValid, handleBlur, handleChange, handleSubmit }) => (
                     <>
+                        <TextInputFmk
+                            name="dni"
+                            placeholder="Número de documento"
+                            slabel="Número de documento"
+                            error={touched.dni && errors.dni}
+                            onChangeText={handleChange('dni')}
+                            onBlur={handleBlur('dni')}
+                            value={values.dni}
+                            keyboardType='number-pad'
+                            ref={Inputs.dni}
+                            onSubmitEditing={() => { handleEditDni(values) }} blurOnSubmit={false}
+                        />
+                        <TextInputFmk
+                            name="cuitcuil"
+                            placeholder="Cuit/Cuil"
+                            slabel="Cuit/Cuil"
+                            error={touched.cuitcuil && errors.cuitcuil}
+                            onChangeText={handleChange('cuitcuil')}
+                            onBlur={handleBlur('cuitcuil')}
+                            value={values.cuitcuil}
+                            keyboardType='number-pad'
+                            ref={Inputs.cuitcuil}
+                            onSubmitEditing={() => { Inputs.email.current.focus(); }} blurOnSubmit={false}
+                        />
                         <TextInputFmk
                             name="nombre"
                             placeholder="Nombre"
@@ -246,30 +311,7 @@ export default function Registro({route}) {
                             ref={Inputs.apellido}
                             onSubmitEditing={() => { Inputs.dni.current.focus(); }} blurOnSubmit={false}
                         />
-                        <TextInputFmk
-                            name="dni"
-                            placeholder="Número de documento"
-                            slabel="Número de documento"
-                            error={touched.dni && errors.dni}
-                            onChangeText={handleChange('dni')}
-                            onBlur={handleBlur('dni')}
-                            value={values.dni}
-                            keyboardType='number-pad'
-                            ref={Inputs.dni}
-                            onSubmitEditing={() => { Inputs.cuitcuil.current.focus(); }} blurOnSubmit={false}
-                        />
-                        <TextInputFmk
-                            name="cuitcuil"
-                            placeholder="Cuit/Cuil"
-                            slabel="Cuit/Cuil"
-                            error={touched.cuitcuil && errors.cuitcuil}
-                            onChangeText={handleChange('cuitcuil')}
-                            onBlur={handleBlur('cuitcuil')}
-                            value={values.cuitcuil}
-                            keyboardType='number-pad'
-                            ref={Inputs.cuitcuil}
-                            onSubmitEditing={() => { Inputs.email.current.focus(); }} blurOnSubmit={false}
-                        />
+
                         <TextInputFmk
                             name="email"
                             placeholder="Email"

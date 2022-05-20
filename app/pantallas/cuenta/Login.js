@@ -19,6 +19,10 @@ import ModalComp from "../../componentes/ModalComp";
 
 WebBrowser.maybeCompleteAuthSession();
 
+
+
+
+
 export default function Login() {
     const [loading, setLoading] = useState(false);
     const [stateModal, setStateModal] = useState(false);
@@ -109,6 +113,8 @@ export default function Login() {
     const handlePass = (e) => {
         setPassword(e.nativeEvent.text);
     };
+
+
 
     return (
         <ScrollView>

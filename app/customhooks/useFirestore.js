@@ -38,9 +38,9 @@ export const useFirestore = () => {
             setLoading(true)
             const Ref = doc(dbFirestore, coleccion, id)
             const docSnap = await getDoc(Ref)
-            console.log(docSnap)
+            //console.log(docSnap)
             if (docSnap.exists()) {
-                console.log(docSnap)
+                //console.log(docSnap)
                 const qryData = docSnap.data()
                 setData(qryData)
             } else {
@@ -50,6 +50,29 @@ export const useFirestore = () => {
         } catch (error) {
             console.log('error getDataDoc Firestore: ', error)
             setError(error.message)
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    const returnGetDataDoc = async (coleccion, id) => {
+        try {
+            setError(false)
+            setLoading(true)
+            const Ref = doc(dbFirestore, coleccion, id)
+            const docSnap = await getDoc(Ref)
+            //console.log(docSnap)
+            if (docSnap.exists()) {
+                //console.log(docSnap)
+                const qryData = docSnap.data()
+                return qryData
+            } else {
+                return null
+            }
+
+        } catch (error) {
+            console.log('error returnGetDataDoc Firestore: ', error)
+            return error.message
         } finally {
             setLoading(false)
         }
@@ -87,6 +110,6 @@ export const useFirestore = () => {
     }
 
     return {
-        data, error, loading, getDataColl, getDataDoc, setDocument, deleteDocument
+        data, error, loading, getDataColl, getDataDoc, setDocument, deleteDocument, returnGetDataDoc
     }
 }
