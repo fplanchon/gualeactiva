@@ -29,6 +29,7 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
+    "scheme": "gualeactiva",
     "description": "Login y useFirestore",
     "githubUrl": "https://github.com/fplanchon/gualeactiva.git",
     "plugins": [
