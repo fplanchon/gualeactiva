@@ -94,6 +94,16 @@ export const useFirestore = () => {
         }
     }
 
+    const setDocumentNoState = async (coleccion, id, datos, mergear = true) => {
+        try {
+            const Ref = doc(dbFirestore, coleccion, id)
+            await setDoc(Ref, datos, { merge: mergear })
+        } catch (error) {
+            console.log('error setDocumentNoState Firestore: ', error)
+            throw error
+        }
+    }
+
     const deleteDocument = async (coleccion, id) => {
         try {
             setError(false)
@@ -110,6 +120,6 @@ export const useFirestore = () => {
     }
 
     return {
-        data, error, loading, getDataColl, getDataDoc, setDocument, deleteDocument, returnGetDataDoc
+        data, error, loading, getDataColl, getDataDoc, setDocument, deleteDocument, returnGetDataDoc, setDocumentNoState
     }
 }

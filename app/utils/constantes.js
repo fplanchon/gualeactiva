@@ -2,7 +2,8 @@
 const constantes = {
     API: 'http://fp-apiseg.gchu.org/',
     colecciones: {
-        usuariosInfo: 'usuariosInfo'
+        usuariosInfo: 'usuariosInfo',
+        ciudadanos: 'ciudadanos'
     }
 
 }

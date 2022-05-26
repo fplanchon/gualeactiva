@@ -20,6 +20,7 @@ import { cuilValidator, expRegulares } from "../../utils/validaciones";
 import { useTraducirFirebaseError } from "../../customhooks/useTraducirFirebaseError";
 import { useFirestore } from "../../customhooks/useFirestore";
 import constantes from "../../utils/constantes";
+import { useUsrCiudadanoFirestore } from "../../customhooks/useUsrCiudadanoFirestore";
 
 export default function Registro() {
     const [dataPicker, setDataPicker] = useState(false)
@@ -31,12 +32,14 @@ export default function Registro() {
     const [pedirCiud, setPedirCiud] = useState(0)
     //const [dniAutocompletar, setDniAutocompletar] = useState(null)
 
+
     const { state: firebaseError, dispatch: dispatchFirebaseError } = useTraducirFirebaseError()
 
     const [showPassword1, setShowPassword1] = useState(true)
     const [showPassword2, setShowPassword2] = useState(true)
 
     const { setDocument, deleteDocument } = useFirestore()
+    const { eliminarUsuarioEnAuthYFirestore, setCiudadanoFirestore, setUsuarioFirestore, updateProfileAuth } = useUsrCiudadanoFirestore()
 
     const colUsuariosInfo = constantes.colecciones.usuariosInfo;
 
@@ -98,16 +101,6 @@ export default function Registro() {
     })
 
 
-    const eliminarUsuarioEnAuthYFirestore = async () => {
-        const uid = getAuth().currentUser.uid
-        await deleteUser(getAuth().currentUser).then(() => {
-
-        }).catch((error) => {
-            //console.log('error borrarUsuario en perfil success false', error);
-        });
-
-        await deleteDocument(colUsuariosInfo, uid)
-    }
 
     const crearUsuarioEnAuthYFirestore = () => {
 
@@ -146,37 +139,50 @@ export default function Registro() {
         //console.log('useEffect res')
         const effectRes = async () => {
             //console.log(res)
+            let flagError = false;
             if (typeof res.data !== 'undefined') {
                 if (res.data.success) {
                     //console.log('registro', res.data.data.registro)
                     if (res.data.data.registro === 'OK') {
-                        const email = res.data.data.email
-                        const pass = res.data.data.pass
-                        //console.log(res.data.data.dni, res.data.data.pass, res.data.data.id_ciudadano)
+                        try {
+                            let sId_ciudadano = res.data.data.id_ciudadano.toString()
+                            const auth = getAuth();
+                            const dataCiudadano = {
+                                'id_ciudadano': sId_ciudadano,
+                                'email': dataRegistro.email,
+                                'nombres': dataRegistro.apellido + ' ' + dataRegistro.nombre,
+                                'cuitcuil': dataRegistro.cuitcuil
+                            }
 
-                        await updateProfile(getAuth().currentUser, { displayName: dataRegistro.apellido + ' ' + dataRegistro.nombre }).then(async () => {
-                            // Profile updated!
-                            // ...
-                        }).catch((error) => {
-                            //console.log('derror updateProfile', error);
-                        });
+                            await updateProfileAuth(dataRegistro.apellido + ' ' + dataRegistro.nombre)
 
-                        await setDocument(colUsuariosInfo, getAuth().currentUser.uid, {
-                            'id_ciudadano': res.data.data.id_ciudadano,
-                            'nombres': dataRegistro.apellido + ' ' + dataRegistro.nombre,
-                            'cuitcuil': dataRegistro.cuitcuil
-                        }).then(() => {
-                            authContext.signIn({ datoUsr: email, password: pass })
-                        }).catch((error) => {
-                            console.log(error)
-                        });
+                            await setUsuarioFirestore(res.data.data.id_ciudadano)
+
+                            await setCiudadanoFirestore(dataCiudadano)
+
+                            const loginPayload = {
+                                email: dataRegistro.email,
+                                token: auth.currentUser.stsTokenManager.accessToken,
+                                usuarioInfo: dataCiudadano
+                            }
+
+                            authContext.dispatchManual('LOGIN', loginPayload)
+                        } catch (error) {
+                            console.log('Error Registro effectRes', error)
+
+                        }
                     } else {
-                        eliminarUsuarioEnAuthYFirestore()
+                        flagError = true
                     }
                 } else {
-                    eliminarUsuarioEnAuthYFirestore()
+                    flagError = true
                 }
             }
+
+            if (flagError) {
+                eliminarUsuarioEnAuthYFirestore()
+            }
+
         }
 
         effectRes()

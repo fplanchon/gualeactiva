@@ -19,15 +19,18 @@ import axiosInstance from './app/utils/axiosInstance'
 import constantes from "./app/utils/constantes"
 import LoginStack from './app/navigations/LoginStack'
 import { navigationRef } from "./app/navigations/RootNavigation"
-import { useFirestore } from './app/customhooks/useFirestore';
+import { useUsrCiudadanoFirestore } from "./app/customhooks/useUsrCiudadanoFirestore"
+import { useFirestore } from './app/customhooks/useFirestore'
+
 
 LogBox.ignoreAllLogs();
 
 export default function App({ navigation }) {
     const RootStack = createNativeStackNavigator();
 
-    const { setDocument } = useFirestore()
-    const { data: dataUsrFs, error: errorUsrFs, loading: loadingUsrFs, getDataDoc: getDataDocUsrFs } = useFirestore()
+
+    const { iniciarSesionEmailYPass, crearUsuarioEmailYPassConCiudadano, cerrarSesionAuth } = useUsrCiudadanoFirestore()
+
     const colUsuariosInfo = constantes.colecciones.usuariosInfo;
 
     const initialLoginState = {
@@ -120,8 +123,8 @@ export default function App({ navigation }) {
         signIn: async (credenciales) => {
             let payload = null;
             let userToken = null;
+            let usuarioInfo = null;
             let email = '';
-            let usuarioInfoFs = null;
             const datoUsr = credenciales.datoUsr;
             const password = credenciales.password;
 
@@ -144,23 +147,7 @@ export default function App({ navigation }) {
 
                 //1 - Si existe en firebase, logg ok 
                 if (email !== '') {
-                    const auth = getAuth();
-                    await signInWithEmailAndPassword(
-                        auth,
-                        email,
-                        password,
-                    );
-                    console.log('AUTHfirebase', auth.currentUser);
-
-
-                    userToken = auth.currentUser.stsTokenManager.accessToken;
-
-                    getDataDocUsrFs(colUsuariosInfo, auth.currentUser.uid)
-
-
-                    payload = { email: email, token: userToken, usuarioInfo: dataUsrFs };
-
-
+                    payload = await iniciarSesionEmailYPass(email, password)
                     dispatch({ type: 'LOGIN', ...payload });
                 }
             } catch (e) {
@@ -173,42 +160,15 @@ export default function App({ navigation }) {
 
                     if (response.data.success) {
                         const PimUsuario = response.data.data;
-                        //console.log('PimUsuario', PimUsuario);
-                        const auth = getAuth();
-
-                        await createUserWithEmailAndPassword(auth, email, password)
-                            .then((userCredential) => {
-                                // Signed in
-                            })
-                            .catch((error) => {
-                                const errorCode = error.code;
-                                const errorMessage = error.message;
-                                console.log('createUserWithEmailAndPassword', errorCode);
-
-                                // ..
-                            });
-
-
-                        await updateProfile(getAuth().currentUser, { displayName: PimUsuario.nombres }).then(() => {
-                            // Profile updated!
+                        await crearUsuarioEmailYPassConCiudadano(email, password, PimUsuario).then(() => {
                             authContext.signIn({ datoUsr, password });
-                            // ...
                         }).catch((error) => {
-                            console.log('error updateProfile', error);
-                        });
-
-                        await setDocument(colUsuariosInfo, getAuth().currentUser.uid, {
-                            'id_ciudadano': PimUsuario.id_ciudadano,
-                            'nombres': PimUsuario.nombres,
-                            'cuitcuil': PimUsuario.cuitcuil
-                        }).then(() => {
-
-                        }).catch((error) => {
-                            console.log('setDocument ln196: ', error);
-                        });
+                            console.log('desde APP.js error crearUsuarioEmailYPassConCiudadano ', error)
+                            dispatch({ type: 'ERROR', errorText: 'Error en el servicio de autenticación' });
+                        })
 
                     } else {
-                        //Si no existe en pim, entonces es un usuario
+                        //Si no existe en pim, entonces es un usuario Firebase
                         errorMsj = 'Usuario o contraseña incorrectos';
 
                     }
@@ -216,13 +176,13 @@ export default function App({ navigation }) {
 
                 } else if (e.code === 'auth/invalid-email') {
                     errorMsj = 'Formato de email incorrecto';
-                    console.log(e);
+                    // console.log(e);
                 } else if (e.code === 'auth/wrong-password') {
                     errorMsj = 'Contraseña incorrecta';
-                    console.log(e);
+                    //console.log(e);
                 } else {
                     errorMsj = 'Ocurrió un error inesperado con el servicio de autenticación ' + e.code;
-                    console.log(e);
+                    console.log('Ocurrió un error inesperado con el servicio de autenticación ', e);
                 }
 
                 if (errorMsj !== '') {
@@ -231,20 +191,12 @@ export default function App({ navigation }) {
             }
         },
         signOut: async () => {
-            /*try {
-                const url = constantes.API + 'cerrarSesionApi';
-                // userToken = await AsyncStorage.getItem('userToken');
-                const response = await axios.post(url, { jwt: userToken });
-                //await AsyncStorage.removeItem('userToken');
+            try {
+                cerrarSesionAuth()
             } catch (e) {
                 console.log(e);
-            }*/
-            const auth = getAuth()
-            signOut(auth).then(() => {
-                // Sign-out successful.
-            }).catch((error) => {
-                // An error happened.
-            });
+            }
+
             dispatch({ type: 'LOGOUT' });
         },
         signUp: () => {
