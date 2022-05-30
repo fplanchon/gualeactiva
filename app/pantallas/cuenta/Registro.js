@@ -42,22 +42,17 @@ export default function Registro({ route }) {
     }
     const [dataRegistro, setDataRegistro] = useState(registroInitialState)
     const [pedir, setPedir] = useState(0)
-    const [pedirCiud, setPedirCiud] = useState(0)
-    //const [dniAutocompletar, setDniAutocompletar] = useState(null)
-
 
     const { state: firebaseError, dispatch: dispatchFirebaseError } = useTraducirFirebaseError()
 
-    const { setDocument, deleteDocument } = useFirestore()
     const { eliminarUsuarioEnAuthYFirestore, setCiudadanoFirestore, setUsuarioFirestore, updateProfileAuth } = useUsrCiudadanoFirestore()
-
-    const colUsuariosInfo = constantes.colecciones.usuariosInfo;
 
     const { res, err, loading, refetch } = useAxiosNoToken({
         method: 'post',
         url: '/registrarCiudadano',
         data: dataRegistro
     })
+
     const Inputs = {
         nombre: useRef(null),
         apellido: useRef(null),
@@ -107,13 +102,6 @@ export default function Registro({ route }) {
 
     })
 
-    const { res, err, loading, refetch } = useAxiosNoToken({
-        method: 'post',
-        url: '/registrarCiudadano',
-        data: dataRegistro
-    })
-
-
     useEffect(() => {
         route.params?.user_data && setUserProvider(route.params?.user_data.providerData);
 
@@ -122,14 +110,13 @@ export default function Registro({ route }) {
                 const auth = getAuth();
                 dispatchFirebaseError(false);
                 /* Validar celular*/
-                setFirebaseError(false);
                 if (dataRegistro.celular && dataRegistro.celular !== null) {
                     const phoneProvider = new PhoneAuthProvider(auth);
                     const verificationId = await phoneProvider.verifyPhoneNumber("+54" + dataRegistro.celular, recaptchaVerifier.current);
                     console.log("Verificacion ID:", verificationId);
-                    /* RootNavigation.navigate("VerificarCodigo", {
+                    /*RootNavigation.navigate("VerificarCodigo", {
                         vID: verificationId,
-                    }); */
+                    });*/
                 }
                 await createUserWithEmailAndPassword(auth, dataRegistro.email, dataRegistro.pass)
                     .then((userCredential) => {
@@ -137,14 +124,7 @@ export default function Registro({ route }) {
                         refetch()
                     })
                     .catch((error) => {
-
-                        /*deleteUser(getAuth().currentUser).then(() => {
-
-                        }).catch((error) => {
-                            console.log('error borrarUsuario', error);
-                        });*/
                         dispatchFirebaseError({ type: error.code })
-                        // useTraducirFirebaseError(error)
                     });
             }
 

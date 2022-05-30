@@ -72,7 +72,7 @@ export const useFirestore = () => {
 
         } catch (error) {
             console.log('error returnGetDataDoc Firestore: ', error)
-            return error.message
+            throw error
         } finally {
             setLoading(false)
         }

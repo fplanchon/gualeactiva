@@ -1,9 +1,9 @@
-import { useEffect,useState,useRef,useContext } from "react";
+import { useEffect, useState, useRef, useContext } from "react";
 import { StyleSheet, Text, ScrollView, View } from "react-native";
 
 import { Input, Icon, Button, Card, SocialIcon } from "react-native-elements";
 import { useNavigation } from "@react-navigation/native";
-import { getAuth, GoogleAuthProvider,signInWithCredential,PhoneAuthProvider, deleteUser } from "firebase/auth";
+import { getAuth, GoogleAuthProvider, signInWithCredential, PhoneAuthProvider, deleteUser } from "firebase/auth";
 import * as Google from "expo-auth-session/providers/google";
 import * as WebBrowser from "expo-web-browser";
 import { FirebaseRecaptchaVerifierModal } from 'expo-firebase-recaptcha';
@@ -13,7 +13,7 @@ import { getApp } from "../../utils/firebase-config"
 import estilosVar from "../../utils/estilos";
 import stylesGral from "../../utils/StyleSheetGeneral";
 import constantes from "../../utils/constantes";
-import {expRegulares} from "../../utils/validaciones";
+import { expRegulares } from "../../utils/validaciones";
 import Loading from "../../componentes/Loading";
 import ModalComp from "../../componentes/ModalComp";
 
@@ -37,7 +37,7 @@ export default function Login() {
     const recaptchaVerifier = useRef(null);
 
     const [numero, setNumero] = useState(null);
-    const [codeSend, setCodeSend] = useState({ viewCodeInput: false,  code: "" });
+    const [codeSend, setCodeSend] = useState({ viewCodeInput: false, code: "" });
     const [verificationId, setVerificationId] = useState(null)
 
     const sendMessage = async () => {
@@ -53,13 +53,13 @@ export default function Login() {
     };
 
     const signInWithPhone = async () => {
-        const credential = PhoneAuthProvider.credential(verificationId, codeSend.code );
-        await signInWithCredential(auth, credential).then((res)=> {
+        const credential = PhoneAuthProvider.credential(verificationId, codeSend.code);
+        await signInWithCredential(auth, credential).then((res) => {
             console.log("Nuevo usuario:", res._tokenResponse.isNewUser);
             if (!res._tokenResponse.isNewUser) {
                 authContext.dispatchManual('LOGIN', { token: auth.currentUser.accessToken })
-            }else{
-                deleteUser(getAuth().currentUser).then((res) =>{
+            } else {
+                deleteUser(getAuth().currentUser).then((res) => {
                     navigation.navigate("registro")
                 })
             }
@@ -71,23 +71,23 @@ export default function Login() {
     const popupGoogle = () => { promptAsync({ useProxy: true, showInRecents: true }); };
 
     useEffect(() => {
-        auth.onAuthStateChanged(function(user) {
+        auth.onAuthStateChanged(function (user) {
             if (user) {
                 // User is signed in.
                 //navigation.navigate('Home');
                 /* console.log("Usuario ya inicio sesion",user);*/
-            }else{
+            } else {
                 if (response?.type === "success") {
                     setLoading(true)
                     /* console.log("res",response); */
                     const token = response.authentication.accessToken;
-                    const credential = GoogleAuthProvider.credential(null,token);
+                    const credential = GoogleAuthProvider.credential(null, token);
                     /* console.log("credential",credential); */
                     if (credential) {
-                        signInWithCredential(auth, credential).then((res)=> {
+                        signInWithCredential(auth, credential).then((res) => {
                             //const user = res.user;
                             res.user && setLoading(false);
-                            navigation.navigate("registro",{
+                            navigation.navigate("registro", {
                                 user_data: res.user
                             })
                         }).catch((error) => {
@@ -118,22 +118,22 @@ export default function Login() {
 
     return (
         <ScrollView>
-        <Card>
-            <Card.Title>
-            <Text style={styles.tituloCard}>
-                Indique Email o DNI y Contraseña
-            </Text>
-            </Card.Title>
-            <Card.Image style={styles.logo} source={require("../../../assets/logo-color.png")} />
-            <Card.Divider />
+            <Card>
+                <Card.Title>
+                    <Text style={styles.tituloCard}>
+                        Indique Email o DNI y Contraseña
+                    </Text>
+                </Card.Title>
+                <Card.Image style={styles.logo} source={require("../../../assets/logo-color.png")} />
+                <Card.Divider />
                 <Input
                     placeholder="Email o DNI"
                     containerStyle={styles.inputForm}
                     rightIcon={
                         <Icon
-                        type="material"
-                        name="account-circle"
-                        iconStyle={styles.iconRight}
+                            type="material"
+                            name="account-circle"
+                            iconStyle={styles.iconRight}
                         />
                     }
                     onChange={(e) => handleDatoUsr(e)}
@@ -149,53 +149,54 @@ export default function Login() {
                             name={showPass ? "visibility-off" : "visibility"}
                             iconStyle={styles.iconRight}
                             onPress={() => setShowPass(!showPass)}
-                            />
-                        }
-                        onChange={(e) => handlePass(e)}
+                        />
+                    }
+                    onChange={(e) => handlePass(e)}
                 />
                 {loginState.isError ? (
                     <Text style={stylesGral.errorText}>{loginState.errorText}</Text>
                 ) : null}
                 <Button title="Iniciar Sesión" onPress={() => authContext.signIn({ datoUsr, password })} />
-            <Card.Divider />
-            <Text style={styles.textRegister}> ¿Aún no tienes una cuenta?&nbsp;&nbsp; <Text style={styles.btnRegister} onPress={() => navigation.navigate("registro")} > Registrate </Text> </Text>
+                <Button title="ver  auth" onPress={() => authContext.verAuth()} />
+                <Card.Divider />
+                <Text style={styles.textRegister}> ¿Aún no tienes una cuenta?&nbsp;&nbsp; <Text style={styles.btnRegister} onPress={() => navigation.navigate("registro")} > Registrate </Text> </Text>
 
-            <View style={styles.boxSocial}>
-                <Button buttonStyle={styles.btnLoginPhone} title="Iniciar con teléfono" onPress={()=> stateModal ? setStateModal(false) :
-                    setStateModal(true)}/>
-                <SocialIcon onPress={popupGoogle} title={"Iniciar sesión con Google"} button={true} type={"google"} />
-            </View>
-        </Card>
-
-        {stateModal &&
-            <ModalComp stateModal={stateModal} titulo="Iniciar sesión con teléfono">
-                <View style={styles.modal}>
-                    { !codeSend.viewCodeInput ?
-                        <View>
-                            <Text style={{ fontWeight: '700' }}>Celular</Text>
-                            <Input style={styles.inputFormModal} placeholder="Celular" onChange={(e) => {setNumero(e.nativeEvent.text)}}/>
-                            <View style={styles.iconRow}>
-                                <Icon style={styles.styleIcon} name="information" type="material-community" color={estilosVar.naranjaBitter} />
-                                <Text style={styles.textInfo}>Código de área sin "0" + Teléfono sin "15"</Text>
-                            </View>
-                            <Button title="Iniciar sesion" onPress={sendMessage} style={styles.btnRegister}/>
-
-                            <FirebaseRecaptchaVerifierModal ref={recaptchaVerifier} firebaseConfig={app.options} />
-                        </View>
-                    :
-                        <View>
-                            <Text style={{ fontWeight: '700' }}>Ingrese el codigo enviado a su celular</Text>
-                            <Input style={styles.inputFormModal} placeholder="Codigo" onChange={(e) => {setCodeSend({ viewCodeInput:true, code: e.nativeEvent.text})}} rightIcon={
-                                <Icon name='cellphone-message' type='material-community' size={24} color='gray' />
-                            }/>
-                            <Button title="Verificar codigo" onPress={signInWithPhone} style={styles.btnCode} />
-                        </View>
-                    }
+                <View style={styles.boxSocial}>
+                    <Button buttonStyle={styles.btnLoginPhone} title="Iniciar con teléfono" onPress={() => stateModal ? setStateModal(false) :
+                        setStateModal(true)} />
+                    <SocialIcon onPress={popupGoogle} title={"Iniciar sesión con Google"} button={true} type={"google"} />
                 </View>
-            </ModalComp>
-        }
+            </Card>
 
-        {loading && <Loading isLoading={loading} text={"Espere un momento..."} />}
+            {stateModal &&
+                <ModalComp stateModal={stateModal} titulo="Iniciar sesión con teléfono">
+                    <View style={styles.modal}>
+                        {!codeSend.viewCodeInput ?
+                            <View>
+                                <Text style={{ fontWeight: '700' }}>Celular</Text>
+                                <Input style={styles.inputFormModal} placeholder="Celular" onChange={(e) => { setNumero(e.nativeEvent.text) }} />
+                                <View style={styles.iconRow}>
+                                    <Icon style={styles.styleIcon} name="information" type="material-community" color={estilosVar.naranjaBitter} />
+                                    <Text style={styles.textInfo}>Código de área sin "0" + Teléfono sin "15"</Text>
+                                </View>
+                                <Button title="Iniciar sesion" onPress={sendMessage} style={styles.btnRegister} />
+
+                                <FirebaseRecaptchaVerifierModal ref={recaptchaVerifier} firebaseConfig={app.options} />
+                            </View>
+                            :
+                            <View>
+                                <Text style={{ fontWeight: '700' }}>Ingrese el codigo enviado a su celular</Text>
+                                <Input style={styles.inputFormModal} placeholder="Codigo" onChange={(e) => { setCodeSend({ viewCodeInput: true, code: e.nativeEvent.text }) }} rightIcon={
+                                    <Icon name='cellphone-message' type='material-community' size={24} color='gray' />
+                                } />
+                                <Button title="Verificar codigo" onPress={signInWithPhone} style={styles.btnCode} />
+                            </View>
+                        }
+                    </View>
+                </ModalComp>
+            }
+
+            {loading && <Loading isLoading={loading} text={"Espere un momento..."} />}
         </ScrollView>
     );
 }
@@ -254,7 +255,7 @@ const styles = StyleSheet.create({
         color: estilosVar.azulSuave,
         fontWeight: "bold",
     },
-    iconRow:{
+    iconRow: {
         flexDirection: "row",
         alignContent: "center"
     },
@@ -267,7 +268,7 @@ const styles = StyleSheet.create({
         height: 29,
         width: 265,
     },
-    inputFormModal:{
+    inputFormModal: {
         width: "100%",
     }
 });

@@ -20,7 +20,7 @@ import constantes from "./app/utils/constantes"
 import LoginStack from './app/navigations/LoginStack'
 import { navigationRef } from "./app/navigations/RootNavigation"
 import { useUsrCiudadanoFirestore } from "./app/customhooks/useUsrCiudadanoFirestore"
-import { useFirestore } from './app/customhooks/useFirestore'
+
 
 
 LogBox.ignoreAllLogs();
@@ -28,13 +28,12 @@ LogBox.ignoreAllLogs();
 export default function App({ navigation }) {
     const RootStack = createNativeStackNavigator();
 
-
-    const { iniciarSesionEmailYPass, crearUsuarioEmailYPassConCiudadano, cerrarSesionAuth } = useUsrCiudadanoFirestore()
+    const { iniciarSesionEmailYPass, crearUsuarioEmailYPassConCiudadano, cerrarSesionAuth, recuperarDatosDeSesion, getReturnUsuario, returnGetDataDoc } = useUsrCiudadanoFirestore()
 
     const colUsuariosInfo = constantes.colecciones.usuariosInfo;
 
     const initialLoginState = {
-        isLoading: true,
+        isLoading: false,
         loadingText: '',
         email: '',
         datoUsr: '',
@@ -219,24 +218,44 @@ export default function App({ navigation }) {
         },
         dispatchManual: (tipo, payload) => {
             dispatch({ type: tipo, ...payload });
+        },
+        verAuth: async () => {
+            /*  const auth = getAuth()
+              console.log('verAuth', auth)
+              let usuarioInfo = await returnGetDataDoc('usuariosInfo', auth.currentUser.uid)
+              let ciudadanoInfo = await returnGetDataDoc('ciudadanos', usuarioInfo.id_ciudadano)
+              console.log('USR', usuarioInfo, ciudadanoInfo)
+              usuarioInfo = { ...usuarioInfo, ...ciudadanoInfo }
+  
+              let resultado = {
+                  email: ciudadanoInfo.email,
+                  token: auth.currentUser.stsTokenManager.accessToken,
+                  usuarioInfo: usuarioInfo
+              }
+              authContext.dispatchManual('LOGIN', resultado)*/
+            payloadLogin = await recuperarDatosDeSesion()
+            console.log(payloadLogin);
         }
     }), []);
 
     useEffect(() => {
         setTimeout(async () => {
-            let userToken;
-            userToken = null;
+            let payloadLogin = false;
+
             try {
-                const auth = getAuth()
-                userToken = auth.currentUser.accessToken
+                payloadLogin = await recuperarDatosDeSesion()
+                if (payloadLogin) {
+                    authContext.dispatchManual('LOGIN', payloadLogin);
+                }
                 //userToken = await AsyncStorage.getItem('userToken');
             } catch (e) {
-                //console.log(e);
+                console.log(e);
             }
-
-            dispatch({ type: 'RETRIEVE_TOKEN', token: userToken });
         }, 1000);
     }, []);
+
+
+
 
     const Tab = createBottomTabNavigator()
 

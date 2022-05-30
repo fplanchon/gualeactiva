@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useFirestore } from "./useFirestore";
 import constantes from "../utils/constantes";
 import { getAuth, createUserWithEmailAndPassword, updateProfile, deleteUser, signInWithEmailAndPassword, signOut } from 'firebase/auth'
-import { OperationCanceledException } from "typescript";
+
 
 export const useUsrCiudadanoFirestore = () => {
     const auth = getAuth()
@@ -34,21 +34,41 @@ export const useUsrCiudadanoFirestore = () => {
             )
             console.log('AUTHfirebase', auth.currentUser)
 
-            usuarioInfo = await returnGetDataDoc(colUsuariosInfo, auth.currentUser.uid)
-            ciudadanoInfo = await returnGetDataDoc(colCiudadanos, usuarioInfo.id_ciudadano)
-            usuarioInfo = { ...usuarioInfo, ...ciudadanoInfo }
-
-            //await returnGetDataDoc(colUsuariosInfo, auth.currentUser.uid)
-
-            resultado = {
-                email: email,
-                token: auth.currentUser.stsTokenManager.accessToken,
-                usuarioInfo: usuarioInfo
-            }
+            resultado = await recuperarDatosDeSesion()
 
             return resultado
         } catch (error) {
             console.log('error desde useUsrCiudadanoFirestore iniciarSesionEmailYPass', error)
+            throw error
+        }
+    }
+
+    const recuperarDatosDeSesion = async () => {
+        try {
+            let resultado = null
+            let usuarioInfo = null
+            let ciudadanoInfo = null
+            //const authh = getAuth()
+            //console.log('authh', authh)
+            //console.log('uid', authh.currentUser.uid)
+            if (auth.currentUser) {
+                usuarioInfo = await returnGetDataDoc(colUsuariosInfo, auth.currentUser.uid)
+                ciudadanoInfo = await returnGetDataDoc(colCiudadanos, usuarioInfo.id_ciudadano)
+
+
+
+                usuarioInfo = { ...usuarioInfo, ...ciudadanoInfo }
+
+                resultado = {
+                    email: ciudadanoInfo.email,
+                    token: auth.currentUser.stsTokenManager.accessToken,
+                    usuarioInfo: usuarioInfo
+                }
+            }
+
+            return resultado
+        } catch (error) {
+            console.log('error desde useUsrCiudadanoFirestore recuperarDatosDeSesion', error)
             throw error
         }
     }
@@ -143,5 +163,7 @@ export const useUsrCiudadanoFirestore = () => {
         updateProfileAuth,
         setUsuarioFirestore,
         setCiudadanoFirestore,
+        recuperarDatosDeSesion,
+        returnGetDataDoc
     }
 }
