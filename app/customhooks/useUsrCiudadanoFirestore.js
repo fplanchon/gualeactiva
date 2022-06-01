@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useFirestore } from "./useFirestore";
 import constantes from "../utils/constantes";
-import { getAuth, createUserWithEmailAndPassword, updateProfile, deleteUser, signInWithEmailAndPassword, signOut } from 'firebase/auth'
+import { getAuth, createUserWithEmailAndPassword, updateProfile, deleteUser, signInWithEmailAndPassword, signOut, sendEmailVerification } from 'firebase/auth'
 
 
 export const useUsrCiudadanoFirestore = () => {
@@ -77,7 +77,10 @@ export const useUsrCiudadanoFirestore = () => {
         try {
             await createUserWithEmailAndPassword(auth, email, password)
                 .then((userCredential) => {
-
+                    sendEmailVerification(auth.currentUser)
+                        .then(() => {
+                            console.log('Email conf enviado')
+                        });
                 })
                 .catch((error) => {
                     console.log('error desde useUsrCiudadanoFirestore.js createUserWithEmailAndPassword', error);
@@ -127,7 +130,6 @@ export const useUsrCiudadanoFirestore = () => {
     }
 
     const setCiudadanoFirestore = async (PimUsuario) => {
-        console.log('PimUsuario', PimUsuario)
         await setDocumentNoState(colCiudadanos, PimUsuario.id_ciudadano, {
             'nombres': PimUsuario.nombres,
             'cuitcuil': PimUsuario.cuitcuil,

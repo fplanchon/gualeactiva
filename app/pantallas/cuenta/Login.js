@@ -157,7 +157,6 @@ export default function Login() {
                     <Text style={stylesGral.errorText}>{loginState.errorText}</Text>
                 ) : null}
                 <Button title="Iniciar Sesión" onPress={() => authContext.signIn({ datoUsr, password })} />
-                <Button title="ver  auth" onPress={() => authContext.verAuth()} />
                 <Card.Divider />
                 <Text style={styles.textRegister}> ¿Aún no tienes una cuenta?&nbsp;&nbsp; <Text style={styles.btnRegister} onPress={() => navigation.navigate("registro")} > Registrate </Text> </Text>
 
