@@ -24,8 +24,9 @@ import { useFirestore } from "../../customhooks/useFirestore";
 import constantes from "../../utils/constantes";
 import RegistroGoogle from "./RegistroGoogle"
 import moment from 'moment';
+import { useUsrCiudadanoFirestore } from "../../customhooks/useUsrCiudadanoFirestore";
 
-export default function Registro({route}) {
+export default function Registro({ route }) {
     const { authContext } = useContext(AuthContext);
     const app = getApp();
     const auth = getAuth(initFirebase);
@@ -44,8 +45,6 @@ export default function Registro({route}) {
     const [pedir, setPedir] = useState(0)
     const [pedirCiud, setPedirCiud] = useState(0)
 
-    const { state: firebaseError, dispatch: dispatchFirebaseError } = useTraducirFirebaseError()
-
     const { setDocument, deleteDocument } = useFirestore()
 
     const colUsuariosInfo = constantes.colecciones.usuariosInfo;
@@ -54,11 +53,16 @@ export default function Registro({route}) {
     const [userExistPhone, setUserExistPhone] = useState({existe: false, idUser: null});
     const [correoVerificar, setCorreoVerificar] = useState(null);
 
+    const { state: firebaseError, dispatch: dispatchFirebaseError } = useTraducirFirebaseError()
+
+    const { eliminarUsuarioEnAuthYFirestore, setCiudadanoFirestore, setUsuarioFirestore, updateProfileAuth } = useUsrCiudadanoFirestore()
+
     const { res, err, loading, refetch } = useAxiosNoToken({
         method: 'post',
         url: '/registrarCiudadano',
         data: dataRegistro
     })
+
     const Inputs = {
         nombre: useRef(null),
         apellido: useRef(null),
@@ -107,22 +111,8 @@ export default function Registro({route}) {
 
     })
 
-    const eliminarUsuarioEnAuthYFirestore = async () => {
-        const uid = getAuth().currentUser.uid
-        await deleteUser(getAuth().currentUser).then(() => {
-
-        }).catch((error) => {
-            //console.log('error borrarUsuario en perfil success false', error);
-        });
-
-        await deleteDocument(colUsuariosInfo, uid)
-    }
-
-    const crearUsuarioEnAuthYFirestore = () => {
-
-    }
-
     useEffect(async () => {
+        route.params?.user_data && setUserProvider(route.params?.user_data.providerData);
 
         if(userExistPhone.existe){
             const auth = getAuth();
@@ -157,7 +147,6 @@ export default function Registro({route}) {
                         })
                     }
                 }
-
                 registrar()
             }
         }
@@ -166,38 +155,50 @@ export default function Registro({route}) {
     useEffect(() => {
         const effectRes = async () => {
             //console.log(res)
+            let flagError = false;
             if (typeof res.data !== 'undefined') {
                 if (res.data.success) {
                     //console.log('registro', res.data.data.registro)
                     if (res.data.data.registro === 'OK') {
-                        const email = res.data.data.email
-                        const pass = res.data.data.pass
-                        //console.log(res.data.data.dni, res.data.data.pass, res.data.data.id_ciudadano)
+                        try {
+                            let sId_ciudadano = res.data.data.id_ciudadano.toString()
+                            const auth = getAuth();
+                            const dataCiudadano = {
+                                'id_ciudadano': sId_ciudadano,
+                                'email': dataRegistro.email,
+                                'nombres': dataRegistro.apellido + ' ' + dataRegistro.nombre,
+                                'cuitcuil': dataRegistro.cuitcuil
+                            }
 
-                        await updateProfile(getAuth().currentUser, { displayName: dataRegistro.apellido + ' ' + dataRegistro.nombre }).then(async () => {
-                            // Profile updated!
-                            // ...
-                        }).catch((error) => {
-                            //console.log('derror updateProfile', error);
-                        });
+                            await updateProfileAuth(dataRegistro.apellido + ' ' + dataRegistro.nombre)
 
-                        await setDocument(colUsuariosInfo, getAuth().currentUser.uid, {
-                            'id_ciudadano': res.data.data.id_ciudadano,
-                            'nombres': dataRegistro.apellido + ' ' + dataRegistro.nombre,
-                            'cuitcuil': dataRegistro.cuitcuil
-                        }).then(() => {
-                            //authContext.signIn({ datoUsr: email, password: pass })
-                            authContext.dispatchManual('LOGIN', { token: auth.currentUser.accessToken })
-                        }).catch((error) => {
-                            console.log(error)
-                        });
+                            await setUsuarioFirestore(res.data.data.id_ciudadano)
+
+                            await setCiudadanoFirestore(dataCiudadano)
+
+                            const loginPayload = {
+                                email: dataRegistro.email,
+                                token: auth.currentUser.stsTokenManager.accessToken,
+                                usuarioInfo: dataCiudadano
+                            }
+
+                            authContext.dispatchManual('LOGIN', loginPayload)
+                        } catch (error) {
+                            console.log('Error Registro effectRes', error)
+
+                        }
                     } else {
-                        eliminarUsuarioEnAuthYFirestore()
+                        flagError = true
                     }
                 } else {
-                    eliminarUsuarioEnAuthYFirestore()
+                    flagError = true
                 }
             }
+
+            if (flagError) {
+                eliminarUsuarioEnAuthYFirestore()
+            }
+
         }
 
         effectRes()
@@ -215,7 +216,7 @@ export default function Registro({route}) {
                             message: "Ya existe una cuenta con este correo.",
                             errorShow: true
                         })
-                    }else{
+                    } else {
                         setErrorExistInFirebase({ message: "", errorShow: false });
                     }
                 })
@@ -273,167 +274,175 @@ export default function Registro({route}) {
             <Text h4 style={styles.titulo} >Registrate en GualeActiva</Text>
             {!user_data && !stateModal.modalPhone ?
             <Formik initialValues={registroInitialState} validationSchema={registroValidationSchema} onSubmit={submitRegistro}>
-                {({ values, isSubmitting, errors, touched, isValid, handleBlur, handleChange, handleSubmit }) => (
-                    <>
-                        <TextInputFmk
-                            name="dni"
-                            placeholder="Número de documento"
-                            slabel="Número de documento"
-                            error={touched.dni && errors.dni}
-                            onChangeText={handleChange('dni')}
-                            onBlur={handleBlur('dni')}
-                            value={values.dni}
-                            keyboardType='number-pad'
-                            ref={Inputs.dni}
-                            onSubmitEditing={() => { handleEditDni(values);Inputs.cuitcuil.current.focus() }} blurOnSubmit={false}
-                        />
-                        <TextInputFmk
-                            name="cuitcuil"
-                            placeholder="Cuit/Cuil"
-                            slabel="Cuit/Cuil"
-                            error={touched.cuitcuil && errors.cuitcuil}
-                            onChangeText={handleChange('cuitcuil')}
-                            onBlur={handleBlur('cuitcuil')}
-                            value={values.cuitcuil}
-                            keyboardType='number-pad'
-                            ref={Inputs.cuitcuil}
-                            onSubmitEditing={() => { Inputs.nombre.current.focus(); }} blurOnSubmit={false}
-                        />
-                        <TextInputFmk
-                            name="nombre"
-                            placeholder="Nombre"
-                            slabel="Nombre"
-                            error={touched.nombre && errors.nombre}
-                            onChangeText={handleChange('nombre')}
-                            onBlur={handleBlur('nombre')}
-                            value={values.nombre}
-                            ref={Inputs.nombre}
-                            onSubmitEditing={() => { Inputs.apellido.current.focus(); }} blurOnSubmit={false}
-                        />
-                        <TextInputFmk
-                            name="apellido"
-                            placeholder="Apellido"
-                            slabel="Apellido"
-                            error={touched.apellido && errors.apellido}
-                            onChangeText={handleChange('apellido')}
-                            onBlur={handleBlur('apellido')}
-                            value={values.apellido}
-                            ref={Inputs.apellido}
-                            onSubmitEditing={() => { Inputs.email.current.focus(); }} blurOnSubmit={false}
-                        />
-
-                        <TextInputFmk
-                            name="email"
-                            placeholder="Email"
-                            slabel="Email"
-                            error={touched.email && errors.email}
-                            onChangeText={handleChange('email')}
-                            onBlur={handleBlur('email')}
-                            onEndEditing={(e) => verificarSiExiste(e.nativeEvent.text,errors.email,"email")}
-                            value={values.email}
-                            ref={Inputs.email}
-                            onSubmitEditing={() => { Inputs.celular.current.focus(); }} blurOnSubmit={false}
-                        />
-                        {errorExistInFirebase.errorShow && <Text style={styles.errorExistInFirebase}>{errorExistInFirebase.message}</Text>}
-                        <TextInputFmk
-                            name="celular"
-                            placeholder="Celular"
-                            slabel="Celular"
-                            error={touched.celular && errors.celular}
-                            onChangeText={handleChange('celular')}
-                            onBlur={handleBlur('celular')}
-                            value={parseInt(values.celular[0]) === 0 ? values.celular.slice(1) : values.celular}
-                            keyboardType='number-pad'
-                            ref={Inputs.celular}
-                            onSubmitEditing={() => { Inputs.fechaNacimiento.current.focus(); }} blurOnSubmit={false}
-                        />
-                        <View style={stylesGral.info}>
-                            <View style={styles.iconRow}>
-                                <Icon style={styles.styleIcon} name='information' type='material-community' color={estilosVar.naranjaBitter} />
-                                <Text style={styles.textInfo}>Código de área sin "0" + Teléfono sin "15"</Text>
-                            </View>
-                        </View>
-                        <TextInputFmk
-                            name="fechaNacimiento"
-                            placeholder={datePlaceHolder ? datePlaceHolder : "Fecha Nacimiento"}
-                            slabel="Fecha Nacimiento"
-                            error={touched.fechaNacimiento && errors.fechaNacimiento}
-                            onChangeText={handleChange('fechaNacimiento')}
-                            onBlur={handleBlur('fechaNacimiento')}
-                            value={values.fechaNacimiento}
-                            rightIcon={
-                                <Icon
-                                    type="material-community"
-                                    name={values.fechaNacimiento ? "calendar-check" : "calendar-blank"}
-                                    color={values.fechaNacimiento ? estilosVar.colorIconoActivo : estilosVar.colorIconoInactivo}
-                                    onPress={handleDatePicker}
-                                />
-                            }
-                            ref={Inputs.fechaNacimiento}
-                            onSubmitEditing={() => { Inputs.pass.current.focus(); }} blurOnSubmit={false}
-                        />
-                        {dataPicker &&
-                            <DateTimePickerModal
-                                isVisible={dataPicker}
-                                mode="date"
-                                onConfirm={handleConfirm}
-                                onCancel={handleDatePicker}
+                    {({ values, isSubmitting, errors, touched, isValid, handleBlur, handleChange, handleSubmit }) => (
+                        <>
+                            <TextInputFmk
+                                name="dni"
+                                placeholder="Número de documento"
+                                slabel="Número de documento"
+                                error={touched.dni && errors.dni}
+                                onChangeText={handleChange('dni')}
+                                onBlur={handleBlur('dni')}
+                                value={values.dni}
+                                keyboardType='number-pad'
+                                ref={Inputs.dni}
+                                onSubmitEditing={() => { handleEditDni(values) }} blurOnSubmit={false}
                             />
-                        }
-                        <TextInputFmk
-                            name="pass"
-                            placeholder="Contraseña"
-                            slabel="Contraseña"
-                            error={touched.pass && errors.pass}
-                            onChangeText={handleChange('pass')}
-                            onBlur={handleBlur('pass')}
-                            value={values.pass}
-                            secureTextEntry={(showPassword1) ? true : false}
-                            rightIcon={
-                                <Icon
-                                    type="material"
-                                    name={showPassword1 ? "visibility-off" : "visibility"}
-                                    onPress={() => setShowPassword1(!showPassword1)}
+                            <TextInputFmk
+                                name="cuitcuil"
+                                placeholder="Cuit/Cuil"
+                                slabel="Cuit/Cuil"
+                                error={touched.cuitcuil && errors.cuitcuil}
+                                onChangeText={handleChange('cuitcuil')}
+                                onBlur={handleBlur('cuitcuil')}
+                                value={values.cuitcuil}
+                                keyboardType='number-pad'
+                                ref={Inputs.cuitcuil}
+                                onSubmitEditing={() => { Inputs.email.current.focus(); }} blurOnSubmit={false}
+                            />
+                            <TextInputFmk
+                                name="nombre"
+                                placeholder="Nombre"
+                                slabel="Nombre"
+                                error={touched.nombre && errors.nombre}
+                                onChangeText={handleChange('nombre')}
+                                onBlur={handleBlur('nombre')}
+                                value={values.nombre}
+                                ref={Inputs.nombre}
+                                onSubmitEditing={() => { Inputs.apellido.current.focus(); }} blurOnSubmit={false}
+                            />
+                            <TextInputFmk
+                                name="apellido"
+                                placeholder="Apellido"
+                                slabel="Apellido"
+                                error={touched.apellido && errors.apellido}
+                                onChangeText={handleChange('apellido')}
+                                onBlur={handleBlur('apellido')}
+                                value={values.apellido}
+                                ref={Inputs.apellido}
+                                onSubmitEditing={() => { Inputs.dni.current.focus(); }} blurOnSubmit={false}
+                            />
+
+                            <TextInputFmk
+                                name="email"
+                                placeholder="Email"
+                                slabel="Email"
+                                error={touched.email && errors.email}
+                                onChangeText={handleChange('email')}
+                                onBlur={handleBlur('email')}
+                                onEndEditing={(e) => verificarSiExiste(e.nativeEvent.text, errors.email, "email")}
+                                value={values.email}
+                                ref={Inputs.email}
+                                onSubmitEditing={() => { Inputs.celular.current.focus(); }} blurOnSubmit={false}
+                            />
+                            {errorExistInFirebase.errorShow && <Text style={styles.errorExistInFirebase}>{errorExistInFirebase.message}</Text>}
+                            <TextInputFmk
+                                name="celular"
+                                placeholder="Celular"
+                                slabel="Celular"
+                                error={touched.celular && errors.celular}
+                                onChangeText={handleChange('celular')}
+                                onBlur={handleBlur('celular')}
+                                value={parseInt(values.celular[0]) === 0 ? values.celular.slice(1) : values.celular}
+                                onEndEditing={(e) => verificarSiExiste(e.nativeEvent.text, errors.celular, "celular")}
+                                keyboardType='number-pad'
+                                ref={Inputs.celular}
+                                onSubmitEditing={() => { Inputs.fechaNacimiento.current.focus(); }} blurOnSubmit={false}
+                            />
+                            <View style={stylesGral.info}>
+                                <View style={styles.iconRow}>
+                                    <Icon style={styles.styleIcon} name='information' type='material-community' color={estilosVar.naranjaBitter} />
+                                    <Text style={styles.textInfo}>Código de área sin "0" + Teléfono sin "15"</Text>
+                                </View>
+                            </View>
+                            <TextInputFmk
+                                name="fechaNacimiento"
+                                placeholder={datePlaceHolder ? datePlaceHolder : "Fecha Nacimiento"}
+                                slabel="Fecha Nacimiento"
+                                error={touched.fechaNacimiento && errors.fechaNacimiento}
+                                onChangeText={handleChange('fechaNacimiento')}
+                                onBlur={handleBlur('fechaNacimiento')}
+                                value={values.fechaNacimiento}
+                                rightIcon={
+                                    <Icon
+                                        type="material-community"
+                                        name={values.fechaNacimiento ? "calendar-check" : "calendar-blank"}
+                                        color={values.fechaNacimiento ? estilosVar.colorIconoActivo : estilosVar.colorIconoInactivo}
+                                        onPress={handleDatePicker}
+                                    />
+                                }
+                                ref={Inputs.fechaNacimiento}
+                                onSubmitEditing={() => { Inputs.pass.current.focus(); }} blurOnSubmit={false}
+                            />
+                            {dataPicker &&
+                                <DateTimePickerModal
+                                    isVisible={dataPicker}
+                                    mode="date"
+                                    onConfirm={handleConfirm}
+                                    onCancel={handleDatePicker}
                                 />
                             }
-                            ref={Inputs.pass}
-                            onSubmitEditing={() => { Inputs.confirmaPass.current.focus(); }} blurOnSubmit={false}
-                        />
-                        <TextInputFmk
-                            name="confirmaPass"
-                            placeholder="Confirma Contraseña"
-                            slabel="Confirma Contraseña"
-                            error={touched.confirmaPass && errors.confirmaPass}
-                            onChangeText={handleChange('confirmaPass')}
-                            onBlur={handleBlur('confirmaPass')}
-                            value={values.confirmaPass}
-                            secureTextEntry={(showPassword2) ? true : false}
-                            rightIcon={
-                                <Icon
-                                    type="material"
-                                    name={showPassword2 ? "visibility-off" : "visibility"}
-                                    onPress={() => setShowPassword2(!showPassword2)}
-                                />
-                            }
-                            ref={Inputs.confirmaPass}
-                        />
-                        <SubmitBtnFmk submitting={isSubmitting} onPress={handleSubmit} title='Registrarme' disable={isValid} errorFir={errorExistInFirebase}/>
-                        {(err) ?
-                            <>
-                                <Text>Err axios</Text>
-                                <Text style={stylesGral.errorText}>{JSON.stringify(err)}</Text>
-                            </>
-                            : null
-                        }
-                        {(typeof res.data !== 'undefined') ?
-                            (!res.data.success) ?
+                            <TextInputFmk
+                                name="pass"
+                                placeholder="Contraseña"
+                                slabel="Contraseña"
+                                error={touched.pass && errors.pass}
+                                onChangeText={handleChange('pass')}
+                                onBlur={handleBlur('pass')}
+                                value={values.pass}
+                                secureTextEntry={(showPassword1) ? true : false}
+                                rightIcon={
+                                    <Icon
+                                        type="material"
+                                        name={showPassword1 ? "visibility-off" : "visibility"}
+                                        onPress={() => setShowPassword1(!showPassword1)}
+                                    />
+                                }
+                                ref={Inputs.pass}
+                                onSubmitEditing={() => { Inputs.confirmaPass.current.focus(); }} blurOnSubmit={false}
+                            />
+                            <TextInputFmk
+                                name="confirmaPass"
+                                placeholder="Confirma Contraseña"
+                                slabel="Confirma Contraseña"
+                                error={touched.confirmaPass && errors.confirmaPass}
+                                onChangeText={handleChange('confirmaPass')}
+                                onBlur={handleBlur('confirmaPass')}
+                                value={values.confirmaPass}
+                                secureTextEntry={(showPassword2) ? true : false}
+                                rightIcon={
+                                    <Icon
+                                        type="material"
+                                        name={showPassword2 ? "visibility-off" : "visibility"}
+                                        onPress={() => setShowPassword2(!showPassword2)}
+                                    />
+                                }
+                                ref={Inputs.confirmaPass}
+                            />
+                            <SubmitBtnFmk submitting={isSubmitting} onPress={handleSubmit} title='Registrarme' disable={isValid} errorFir={errorExistInFirebase} />
+                            {(err) ?
                                 <>
-                                    <Text>err res</Text>
-                                    <Text style={stylesGral.errorText}>{res.data.error}</Text>
+                                    <Text>Err axios</Text>
+                                    <Text style={stylesGral.errorText}>{JSON.stringify(err)}</Text>
                                 </>
                                 : null
+                            }
+                            {(typeof res.data !== 'undefined') ?
+                                (!res.data.success) ?
+                                    <>
+                                        <Text>err res</Text>
+                                        <Text style={stylesGral.errorText}>{res.data.error}</Text>
+                                    </>
+                                    : null
+                                : null
+                            }
+                            {(firebaseError) ?
+                                <>
+                                    <Text>err firebase</Text>
+                                    <Text style={stylesGral.errorText}>{JSON.stringify(firebaseError)}</Text>
+                                </>
                             : null
-                        }
+                            }
                         {(firebaseError) ?
                             <>
                                 <Text>err firebase</Text>
@@ -449,7 +458,7 @@ export default function Registro({route}) {
                 )}
             </Formik>
             : <RegistroGoogle userProvider={user_data}/>
-            }
+            }   
             {stateModal.modalPhone &&
                 <ModalComp stateModal={stateModal.modalPhone} titulo="Verificar telefono">
                     <View style={styles.modal}>

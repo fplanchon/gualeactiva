@@ -6,7 +6,7 @@ import useAxios from "../../customhooks/useAxios"
 import Loading from "../../componentes/Loading"
 import { useFirestore } from "../../customhooks/useFirestore"
 import { where } from "@firebase/firestore"
-
+import { useUsrCiudadanoFirestore } from "../../customhooks/useUsrCiudadanoFirestore"
 
 export default function Home() {
     const [data, setData] = useState(null)
@@ -15,6 +15,9 @@ export default function Home() {
     const { data: dataFs, error: errorFs, loading: loadingFs, getDataColl, getDataDoc } = useFirestore()
     const { data: resSet, error: errorSet, loading: loadingSet, setDocument, deleteDocument } = useFirestore()
     // const { data: dataFs2, error: errorFs2, loading: loadingFs2, getDataDoc } = useFirestore()
+
+    const { dataUsr, errorUsr, loadingUsr, getUsuario } = useUsrCiudadanoFirestore()
+
     const { authContext, loginState } = React.useContext(AuthContext)
     const loginStateJson = JSON.stringify(loginState)
 
@@ -105,6 +108,21 @@ export default function Home() {
             {loading ? (
                 <Loading isLoading={true} text={"Consultando..."} />
             ) : null}
+            <Button title="Buscar usuario useUsrCiudadanoFirestore" color="#442" onPress={() => getUsuario().then(() => { console.log('ok useusr') })} />
+
+            <Text>****useUsrCiudadanoFirestore****</Text>
+            {loadingUsr ? (
+                <Text>loading useUsrCiudadanoFirestore...</Text>
+            ) : (
+                errorUsr ? (
+                    <Text>Error useUsrCiudadanoFirestore: {errorUsr}</Text>
+                ) :
+                    (<Text>{JSON.stringify(dataUsr)}</Text>)
+            )}
+            <Text>****/useUsrCiudadanoFirestore****</Text>
+
+
+
         </ScrollView>
     )
 
