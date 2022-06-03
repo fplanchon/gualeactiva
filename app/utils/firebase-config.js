@@ -20,4 +20,5 @@ const initFirebase = initializeApp(firebaseConfig)
 const auth = getAuth(initFirebase)
 const dbFirestore = getFirestore(initFirebase)
 
+auth.languageCode = "es";
 export { initFirebase, auth, dbFirestore, getApp }

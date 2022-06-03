@@ -3,7 +3,7 @@ import { StyleSheet, Text, ScrollView, View } from "react-native";
 
 import { Input, Icon, Button, Card, SocialIcon } from "react-native-elements";
 import { useNavigation } from "@react-navigation/native";
-import { getAuth, GoogleAuthProvider, signInWithCredential, PhoneAuthProvider, deleteUser } from "firebase/auth";
+import { getAuth, GoogleAuthProvider,signInWithCredential,PhoneAuthProvider, deleteUser,fetchSignInMethodsForEmail } from "firebase/auth";
 import * as Google from "expo-auth-session/providers/google";
 import * as WebBrowser from "expo-web-browser";
 import { FirebaseRecaptchaVerifierModal } from 'expo-firebase-recaptcha';
@@ -18,10 +18,6 @@ import Loading from "../../componentes/Loading";
 import ModalComp from "../../componentes/ModalComp";
 
 WebBrowser.maybeCompleteAuthSession();
-
-
-
-
 
 export default function Login() {
     const [loading, setLoading] = useState(false);
@@ -53,7 +49,7 @@ export default function Login() {
     };
 
     const signInWithPhone = async () => {
-        const credential = PhoneAuthProvider.credential(verificationId, codeSend.code);
+        const credential = PhoneAuthProvider.credential(verificationId, codeSend.code );
         await signInWithCredential(auth, credential).then((res) => {
             console.log("Nuevo usuario:", res._tokenResponse.isNewUser);
             if (!res._tokenResponse.isNewUser) {
@@ -71,39 +67,26 @@ export default function Login() {
     const popupGoogle = () => { promptAsync({ useProxy: true, showInRecents: true }); };
 
     useEffect(() => {
-        auth.onAuthStateChanged(function (user) {
-            if (user) {
-                // User is signed in.
-                //navigation.navigate('Home');
-                /* console.log("Usuario ya inicio sesion",user);*/
-            } else {
-                if (response?.type === "success") {
-                    setLoading(true)
-                    /* console.log("res",response); */
-                    const token = response.authentication.accessToken;
-                    const credential = GoogleAuthProvider.credential(null, token);
-                    /* console.log("credential",credential); */
-                    if (credential) {
-                        signInWithCredential(auth, credential).then((res) => {
-                            //const user = res.user;
-                            res.user && setLoading(false);
-                            navigation.navigate("registro", {
-                                user_data: res.user
-                            })
-                        }).catch((error) => {
-                            // Handle Errors here.
-                            const errorCode = error.code;
-                            const errorMessage = error.message;
-                            // The email of the user's account used.
-                            const email = error.email;
-                            // The credential that was used.
-                            const credential = GoogleAuthProvider.credentialFromError(error);
-                            // ...
-                        });
+        if (response?.type === "success") {
+            setLoading(true)
+            const credential = GoogleAuthProvider.credential(null, response.authentication.accessToken);
+
+            signInWithCredential(auth, credential).then((res) => {
+                res.user && setLoading(false);
+                fetchSignInMethodsForEmail(auth,res.user.email).then(providers => {
+                    /*if(res.user.emailVerified && providers.find(p => p === "password") === "password"){
+                        // Tiene mail verificado y se registró antes
+                        authContext.dispatchManual('LOGIN', { token: auth.currentUser.accessToken })
+                    }*/
+                    if(res._tokenResponse.isNewUser){
+                        // Es nuevo usuario de google
+                        navigation.navigate("registro",{ user_data: res.user })
+                    }else {
+                        authContext.dispatchManual('LOGIN', { token: auth.currentUser.accessToken })
                     }
-                }
-            }
-        });
+                })
+            })
+        }
     }, [response]);
 
     const handleDatoUsr = (e) => {

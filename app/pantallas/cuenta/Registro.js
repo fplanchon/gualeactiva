@@ -1,10 +1,9 @@
 import React, { useEffect, useContext, useState, useRef } from "react"
 import { ScrollView, StyleSheet, View } from "react-native";
 
-import { Text, Icon, Input } from "react-native-elements";
-import { getAuth, createUserWithEmailAndPassword, updateProfile, deleteUser, PhoneAuthProvider, fetchSignInMethodsForEmail } from 'firebase/auth'
-//import { setDoc, doc } from 'firebase/firestore'
-import { getApp, initFirebase } from "../../utils/firebase-config"
+import { Text, Icon, Input,Button } from "react-native-elements";
+import { getAuth, createUserWithEmailAndPassword, updateProfile, deleteUser,PhoneAuthProvider, fetchSignInMethodsForEmail, signInWithCredential, sendEmailVerification } from 'firebase/auth'
+import { getApp,initFirebase } from "../../utils/firebase-config"
 import * as Yup from 'yup'
 import { Formik } from 'formik'
 import DateTimePickerModal from "react-native-modal-datetime-picker";
@@ -23,6 +22,8 @@ import { cuilValidator, expRegulares } from "../../utils/validaciones";
 import { useTraducirFirebaseError } from "../../customhooks/useTraducirFirebaseError";
 import { useFirestore } from "../../customhooks/useFirestore";
 import constantes from "../../utils/constantes";
+import RegistroGoogle from "./RegistroGoogle"
+import moment from 'moment';
 import { useUsrCiudadanoFirestore } from "../../customhooks/useUsrCiudadanoFirestore";
 
 export default function Registro({ route }) {
@@ -42,6 +43,15 @@ export default function Registro({ route }) {
     }
     const [dataRegistro, setDataRegistro] = useState(registroInitialState)
     const [pedir, setPedir] = useState(0)
+    const [pedirCiud, setPedirCiud] = useState(0)
+
+    const { setDocument, deleteDocument } = useFirestore()
+
+    const colUsuariosInfo = constantes.colecciones.usuariosInfo;
+    const [idVerificacion, setIdVerificacion] = useState(null)
+    const [codigo, setCodigo] = useState(null);
+    const [userExistPhone, setUserExistPhone] = useState({existe: false, idUser: null});
+    const [correoVerificar, setCorreoVerificar] = useState(null);
 
     const { state: firebaseError, dispatch: dispatchFirebaseError } = useTraducirFirebaseError()
 
@@ -65,25 +75,24 @@ export default function Registro({ route }) {
         confirmaPass: useRef(null)
     }
 
-    // Proveedor
-    const [userProvider, setUserProvider] = useState();
+    const {user_data} = route.params ? route.params : false;
+    // user_data && console.log("Param",user_data)
 
-    // Visual
     const [showPassword1, setShowPassword1] = useState(true)
     const [showPassword2, setShowPassword2] = useState(true)
     const [errorExistInFirebase, setErrorExistInFirebase] = useState({ message: "", errorShow: false });
     const recaptchaVerifier = useRef(null);
     const [dataPicker, setDataPicker] = useState(false)
     const [datePlaceHolder, setDatePlaceHolder] = useState(null)
-    const [stateModal, setStateModal] = useState(false);
-    const [codigo, setCodigo] = useState(null);
+    const [stateModal, setStateModal] = useState({
+        modalPhone: false,
+        modalEmailVerificaton: false
+    });
 
     const handleDatePicker = () => setDataPicker(!dataPicker)
-    const handleConfirm = (e) => {
-        let string = JSON.stringify(e);
-        string = string.slice(1, 11);
-        let fechaSeleccionada = changeFormatDate(string)
-        dataRegistro.fechaNacimiento = fechaSeleccionada;
+    const handleConfirm = (date) => {
+        console.log(moment(date).format("DD/MM/YYYY"));
+        dataRegistro.fechaNacimiento = moment(date).format("DD/MM/YYYY")
 
         handleDatePicker()
     }
@@ -95,45 +104,55 @@ export default function Registro({ route }) {
         dni: Yup.number().typeError('Ingrese solo números').required(sEsRequerido).test("dni_valido", "El DNI no es válido", val => expRegulares.dni.test(val)),
         cuitcuil: Yup.number().typeError('Ingrese solo números').required(sEsRequerido).test("cuil_valido", "El CUIL no es válido", (val) => (val !== undefined) && cuilValidator(val.toString())),
         email: Yup.string().email('Indique un email válido').required(sEsRequerido),
-        celular: Yup.number().typeError('Ingrese solo números').required(sEsRequerido).test("celular", 'Ingrese un celular correcto.', (val) => (val !== undefined) && expRegulares.cel.test(val.toString())),
-        fechaNacimiento: Yup.date().typeError('').required(sEsRequerido),
+        celular: Yup.number().typeError('Ingrese solo números').required("Es Requerido").test("celular", 'Ingrese un celular correcto.', (val) => (val !== undefined) && expRegulares.cel.test(val.toString())),
+        fechaNacimiento: Yup.date().typeError('').required(sEsRequerido).max(new Date(), `Verifica si es menor a la fecha actual`),
         pass: Yup.string().min(6, 'Mínimo 6 caracteres').required(sEsRequerido),
         confirmaPass: Yup.string().oneOf([Yup.ref('pass')], 'No coincide la contraseña')
 
     })
 
-    useEffect(() => {
+    useEffect(async () => {
         route.params?.user_data && setUserProvider(route.params?.user_data.providerData);
 
-        if (pedir > 0) {
-            const registrar = async () => {
-                const auth = getAuth();
-                dispatchFirebaseError(false);
-                /* Validar celular*/
-                if (dataRegistro.celular && dataRegistro.celular !== null) {
-                    const phoneProvider = new PhoneAuthProvider(auth);
-                    const verificationId = await phoneProvider.verifyPhoneNumber("+54" + dataRegistro.celular, recaptchaVerifier.current);
-                    console.log("Verificacion ID:", verificationId);
-                    /*RootNavigation.navigate("VerificarCodigo", {
-                        vID: verificationId,
-                    });*/
-                }
-                await createUserWithEmailAndPassword(auth, dataRegistro.email, dataRegistro.pass)
-                    .then((userCredential) => {
-                        //console.log('refetch()')
-                        refetch()
-                    })
-                    .catch((error) => {
-                        dispatchFirebaseError({ type: error.code })
-                    });
+        if(userExistPhone.existe){
+            const auth = getAuth();
+            if (dataRegistro.celular && dataRegistro.celular !== null) {
+                const phoneProvider = new PhoneAuthProvider(auth);
+                const verificationId = await phoneProvider.verifyPhoneNumber( "+54" + dataRegistro.celular, recaptchaVerifier.current );
+                verificationId && setIdVerificacion(verificationId);
+                setStateModal({modalPhone: true, modalEmailVerificaton: false});
             }
-
-            registrar()
+        }else{
+            if (pedir > 0) {
+                const registrar = async () => {
+                    dispatchFirebaseError(false);
+                    try {
+                        await createUserWithEmailAndPassword(auth, dataRegistro.email, dataRegistro.pass).then((userCredential) => {
+                            console.log("Crear usuario con contraseña:",userCredential);
+                            if(userCredential){
+                                setCorreoVerificar(dataRegistro.email);
+                                sendEmailVerification(auth.currentUser).then(res => {
+                                    if (res === undefined) {
+                                        console.log(res);  
+                                    }
+                                })
+                                //refetch()
+                            }
+                        });
+                    }catch (error) {
+                        console.log("Error", auth.currentUser)
+                        console.log("Usuario con proveedor teléfono",userExistPhone.idUser);
+                        deleteUser(userExistPhone.idUser).then((res) =>{
+                            navigation.navigate("LOGIN")
+                        })
+                    }
+                }
+                registrar()
+            }
         }
     }, [pedir])
 
     useEffect(() => {
-        //console.log('useEffect res')
         const effectRes = async () => {
             //console.log(res)
             let flagError = false;
@@ -185,19 +204,14 @@ export default function Registro({ route }) {
         effectRes()
     }, [res])
 
-    const verificarSiExiste = (valor, hayError, tipo) => {
-        if (hayError === undefined) {
-            console.log("Es un dato validado", valor)
+    const verificarSiExiste = async (valor,hayError,tipo) => {
+        if(hayError === undefined){
+            tipo === "email" && console.log("Es un dato validado",valor)
             if (tipo === "email") {
 
-                fetchSignInMethodsForEmail(auth, valor).then(res => {
-                    /*
-                    Devuelve s/ proveedor: Array [
-                        "google.com", o "password"
-                    ]
-                    */
+                fetchSignInMethodsForEmail(auth,valor).then(res => {
+                    /* Devuelve s/ proveedor: Array [ "google.com", o "password" ] */
                     if (res.length !== 0) {
-                        // Si existe un usuario con ese correo
                         setErrorExistInFirebase({
                             message: "Ya existe una cuenta con este correo.",
                             errorShow: true
@@ -206,10 +220,21 @@ export default function Registro({ route }) {
                         setErrorExistInFirebase({ message: "", errorShow: false });
                     }
                 })
-            } else {
-                const number = "+54" + valor;
-                console.log("Numero", number)
-                console.log("Codigo", codigo);
+            }else{
+                const credential = PhoneAuthProvider.credential( idVerificacion, codigo );
+                await signInWithCredential(auth, credential).then(async (res)=> {
+                    console.log("Nuevo usuario:", res);
+                    if (!res._tokenResponse.isNewUser) {
+                        setErrorExistInFirebase({
+                            message: "Ya existe una cuenta con este celular.",
+                            errorShow: true
+                        })
+                    }else{
+                        setUserExistPhone({existe: false, idUser: res.user.uid})
+                        setStateModal({modalPhone: false, modalEmailVerificaton: true})
+                        setPedir(pedir + 1);
+                    }
+                });
             }
         }
     }
@@ -238,6 +263,8 @@ export default function Registro({ route }) {
     const submitRegistro = (values, formikActions) => {
         //console.log('submitRegistro')
         setDataRegistro(values)
+        setUserExistPhone({existe: true, idUser: null})
+
         setPedir(pedir + 1)
         formikActions.setSubmitting(false)
     }
@@ -245,12 +272,8 @@ export default function Registro({ route }) {
     return (
         <ScrollView style={stylesGral.formContainer}  >
             <Text h4 style={styles.titulo} >Registrate en GualeActiva</Text>
-            {userProvider === undefined || !stateModal ?
-                <Formik
-                    initialValues={registroInitialState}
-                    validationSchema={registroValidationSchema}
-                    onSubmit={submitRegistro}
-                >
+            {!user_data && !stateModal.modalPhone ?
+            <Formik initialValues={registroInitialState} validationSchema={registroValidationSchema} onSubmit={submitRegistro}>
                     {({ values, isSubmitting, errors, touched, isValid, handleBlur, handleChange, handleSubmit }) => (
                         <>
                             <TextInputFmk
@@ -418,29 +441,50 @@ export default function Registro({ route }) {
                                     <Text>err firebase</Text>
                                     <Text style={stylesGral.errorText}>{JSON.stringify(firebaseError)}</Text>
                                 </>
-                                : null
+                            : null
                             }
-                            <FirebaseRecaptchaVerifierModal
-                                ref={recaptchaVerifier}
-                                firebaseConfig={app.options}
-                            />
-                        </>
-                    )}
-                </Formik>
-                : <FormProvider handleDatePicker={handleDatePicker} dataPicker={dataPicker} userProvider={userProvider} registroInitialState={registroInitialState} />
-            }
-            {stateModal &&
-                <ModalComp stateModal={stateModal} titulo="Verificar telefono">
-                    <Text>Ingrese el codigo recibido</Text>
-                    <Input
-                        placeholder="Codigo"
-                        containerStyle={styles.inputForm}
-                        rightIcon={
-                            <Icon type="material-community" name="cellphone-message" iconStyle={styles.iconRight} />
+                        {(firebaseError) ?
+                            <>
+                                <Text>err firebase</Text>
+                                <Text style={stylesGral.errorText}>{JSON.stringify(firebaseError)}</Text>
+                            </>
+                            : null
                         }
-                        onChange={(e) => setCodigo(e.nativeEvent.text)}
-                    />
-                    <Button title="Verificar codigo" onPress={verificarSiExiste} style={styles.btnRegister} />
+                        <FirebaseRecaptchaVerifierModal
+                            ref={recaptchaVerifier}
+                            firebaseConfig={app.options}
+                        />
+                    </>
+                )}
+            </Formik>
+            : <RegistroGoogle userProvider={user_data}/>
+            }   
+            {stateModal.modalPhone &&
+                <ModalComp stateModal={stateModal.modalPhone} titulo="Verificar telefono">
+                    <View style={styles.modal}>
+                        <Text>Ingrese el codigo recibido</Text>
+                        <Input
+                            style={styles.inputFormModal}
+                            placeholder="Codigo"
+                            containerStyle={styles.inputForm}
+                            rightIcon={
+                                <Icon type="material-community" name="cellphone-message" iconStyle={styles.iconRight} />
+                            }
+                            onChange={(e) => setCodigo(e.nativeEvent.text)}
+                        />
+                        <Button title="Verificar codigo" onPress={verificarSiExiste} style={styles.btnRegister}/>
+                        {errorExistInFirebase.errorShow && <Text style={styles.errorExistInFirebaseModal}>{errorExistInFirebase.message}</Text>}
+                    </View>
+                </ModalComp>
+            }
+            {stateModal.modalEmailVerificaton &&
+                <ModalComp stateModal={stateModal.modalEmailVerificaton} titulo="Validar correo">
+                    <View style={styles.modal}>
+                        <Text>Un email con el enlace de la confirmación de la cuenta ha sido enviado a su correo: <Text style={styles.correo}>{correoVerificar}</Text></Text>
+                        <Text>Verifique su correo y vuelva para continuar!</Text>
+                        <Icon name='email-alert' type='material-community' color={estilosVar.greenBlue} size={100} />
+                        <Button title="Continuar" buttonStyle={styles.btnContinuar} onPress={() => authContext.dispatchManual('LOGIN', { token: auth.currentUser.accessToken})}/>
+                    </View>
                 </ModalComp>
             }
             <Text>{pedir}</Text>
@@ -450,129 +494,6 @@ export default function Registro({ route }) {
         </ScrollView>
     )
 
-}
-
-const FormProvider = (props) => {
-    const Inputs = {
-        dni: useRef(null),
-        cuitcuil: useRef(null),
-        celular: useRef(null),
-        fechaNacimiento: useRef(null),
-    }
-
-    const registroValidationSchema = Yup.object({
-        dni: Yup.number().typeError('Ingrese solo números').required("Es Requerido").test("dni_valido", "El DNI no es válido", val => expRegulares.dni.test(val)),
-        cuitcuil: Yup.number().typeError('Ingrese solo números').required("Es Requerido").test("cuil_valido", "El CUIL no es válido", (val) => (val !== undefined) && cuilValidator(val.toString())),
-        celular: Yup.number().typeError('Ingrese solo números').required("Es Requerido").test("celular", 'Ingrese un celular correcto.', (val) => (val !== undefined) && expRegulares.cel.test(val.toString())),
-        fechaNacimiento: Yup.date().typeError('').required("Es Requerido"),
-    })
-
-    const handleSubmitProvider = (values) => {
-        const arrayDisplayName = props?.userProvider[0].displayName.split(' ');
-
-        const data = {
-            nombre: arrayDisplayName[0],
-            apellido: arrayDisplayName[1],
-            dni: values.dni,
-            cuitcuil: values.cuitcuil,
-            email: props.userProvider[0].email,
-            celular: values.celular,
-            fechaNacimiento: values.fechaNacimiento
-        }
-
-        console.log("Data:", data);
-    }
-
-    return (
-        <Formik
-            initialValues={props.registroInitialState}
-            validationSchema={registroValidationSchema}
-            onSubmit={handleSubmitProvider}
-        >
-            {({ isSubmitting, touched, errors, handleChange, handleBlur, handleSubmit, values }) => (
-                <View>
-                    <TextInputFmk
-                        name="dni"
-                        placeholder="Número de documento"
-                        slabel="Número de documento"
-                        onChangeText={handleChange("dni")}
-                        onBlur={handleBlur("dni")}
-                        value={values.dni}
-                        keyboardType="number-pad"
-                        error={touched.dni && errors.dni}
-                        ref={Inputs.dni}
-                        onSubmitEditing={() => { Inputs.cuitcuil.current.focus(); }} blurOnSubmit={false}
-                    />
-                    <TextInputFmk
-                        name="cuitcuil"
-                        placeholder="Cuit/Cuil"
-                        slabel="Cuit/Cuil"
-                        onChangeText={handleChange("cuitcuil")}
-                        onBlur={handleBlur("cuitcuil")}
-                        value={values.cuitcuil}
-                        keyboardType="number-pad"
-                        error={touched.cuitcuil && errors.cuitcuil}
-                        ref={Inputs.cuitcuil}
-                        onSubmitEditing={() => { Inputs.celular.current.focus(); }} blurOnSubmit={false}
-                    />
-                    <TextInputFmk
-                        name="celular"
-                        placeholder="Celular"
-                        slabel="Celular"
-                        onChangeText={handleChange("celular")}
-                        onBlur={handleBlur("celular")}
-                        value={values.celular}
-                        keyboardType="number-pad"
-                        error={touched.celular && errors.celular}
-                        ref={Inputs.celular}
-                        onSubmitEditing={() => { Inputs.fechaNacimiento.current.focus(); }} blurOnSubmit={false}
-                    />
-                    <View style={styles.iconRow}>
-                        <Icon style={styles.styleIcon} name="information" type="material-community" color={estilosVar.naranjaBitter} />
-                        <Text style={styles.textInfo}>Código de área sin "0" + Teléfono sin "15"</Text>
-                    </View>
-                    <TextInputFmk
-                        name="fechaNacimiento"
-                        placeholder="Fecha Nacimiento"
-                        slabel="Fecha Nacimiento"
-                        onChangeText={handleChange("fechaNacimiento")}
-                        onBlur={handleBlur("fechaNacimiento")}
-                        value={values.fechaNacimiento}
-                        error={touched.fechaNacimiento && errors.fechaNacimiento}
-                        rightIcon={
-                            <Icon
-                                type="material-community"
-                                name={
-                                    values.fechaNacimiento ? "calendar-check" : "calendar-blank"
-                                }
-                                color={
-                                    values.fechaNacimiento
-                                        ? estilosVar.colorIconoActivo
-                                        : estilosVar.colorIconoInactivo
-                                }
-                                onPress={props.handleDatePicker}
-                            />
-                        }
-                        ref={Inputs.fechaNacimiento}
-                    />
-                    {props.dataPicker && (
-                        <DateTimePickerModal
-                            isVisible={props.dataPicker}
-                            mode="date"
-                            onConfirm={handleConfirm}
-                            onCancel={props.handleDatePicker}
-                        />
-                    )}
-                    <SubmitBtnFmk submitting={isSubmitting} onPress={handleSubmit} title='Registrarme' />
-                </View>
-            )}
-        </Formik>
-    );
-};
-
-const changeFormatDate = (string) => {
-    string = string.replace(/-/g, '/');
-    return string = `${string.slice(8, 10)}/${string.slice(5, 7)}/${string.slice(0, 4)}`
 }
 
 const styles = StyleSheet.create({
@@ -608,6 +529,12 @@ const styles = StyleSheet.create({
         marginBottom: 20,
         color: estilosVar.rojoCrayola
     },
+    errorExistInFirebaseModal: {
+        marginTop: 10,
+        marginLeft: 10,
+        marginBottom: 20,
+        color: estilosVar.rojoCrayola
+    },
     inputForm: {
         width: "100%",
         marginTop: 20,
@@ -616,4 +543,15 @@ const styles = StyleSheet.create({
         color: estilosVar.azulSuave,
         fontWeight: "bold",
     },
+
+    // Modal
+    modal: {
+        margin: 20
+    },
+    inputFormModal:{
+        width: "100%",
+    },
+    correo: {
+        color: estilosVar.greenBlue
+    }
 })
