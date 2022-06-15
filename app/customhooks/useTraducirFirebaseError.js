@@ -15,6 +15,10 @@ export const useTraducirFirebaseError = () => {
                 return 'Formato de email incorrecto'
             case 'auth/wrong-password':
                 return 'Contraseña incorrecta'
+            case 'auth/invalid-verification-code':
+                return 'Código de verificación incorrecto'
+            case 'auth/missing-verification-id':
+                return 'Falta código de verificación'
             default:
                 return action.type
         }

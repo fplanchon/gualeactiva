@@ -52,10 +52,12 @@ export const useUsrCiudadanoFirestore = () => {
             //console.log('authh', authh)
             //console.log('uid', authh.currentUser.uid)
             if (auth.currentUser) {
+
                 usuarioInfo = await returnGetDataDoc(colUsuariosInfo, auth.currentUser.uid)
+                console.log('usuarioInfo', usuarioInfo)
+
                 ciudadanoInfo = await returnGetDataDoc(colCiudadanos, usuarioInfo.id_ciudadano)
-
-
+                console.log('ciudadanoInfo', ciudadanoInfo)
 
                 usuarioInfo = { ...usuarioInfo, ...ciudadanoInfo }
 

@@ -1,7 +1,7 @@
 import { StyleSheet, Text, View } from "react-native";
-import React,{useRef,useState,useContext} from "react";
-import { getAuth,PhoneAuthProvider, signInWithCredential } from "firebase/auth";
-import { Icon,Button,Input } from "react-native-elements";
+import React, { useRef, useState, useContext } from "react";
+import { getAuth, PhoneAuthProvider, signInWithCredential } from "firebase/auth";
+import { Icon, Button, Input } from "react-native-elements";
 import { getApp } from "../../utils/firebase-config";
 import TextInputFmk from "../../componentes/TextInputFmk";
 import { FirebaseRecaptchaVerifierModal } from 'expo-firebase-recaptcha';
@@ -10,12 +10,12 @@ import * as Yup from 'yup'
 import { Formik } from 'formik'
 import moment from 'moment';
 import estilosVar from "../../utils/estilos";
-import { expRegulares,cuilValidator } from "../../utils/validaciones";
+import { expRegulares, cuilValidator } from "../../utils/validaciones";
 import ModalComp from "../../componentes/ModalComp";
 import { AuthContext } from "../../contexts/AuthContext";
 
 const RegistroGoogle = (props) => {
-  const {userProvider} = props;
+  const { userProvider } = props;
   const auth = getAuth();
   const app = getApp();
   const [stateModal, setStateModal] = useState({
@@ -42,7 +42,7 @@ const RegistroGoogle = (props) => {
     celular: "",
     fechaNacimiento: "",
   };
-  
+
   const handleDatePicker = () => setDataPicker(!dataPicker)
   const handleConfirm = (date) => {
     dataUsuario.fechaNacimiento = moment(date.toLocaleDateString('es-AR')).format("DD/MM/YYYY")
@@ -50,19 +50,19 @@ const RegistroGoogle = (props) => {
   }
 
   const sEsRequerido = "Es Requerido";
-  const registroValidationSchema= Yup.object({
-    dni:Yup.number().typeError("Ingrese solo números").required("Es Requerido").test("dni_valido","El DNI no es válido",(e=>expRegulares.dni.test(e))),
-    cuitcuil:Yup.number().typeError("Ingrese solo números").required("Es Requerido").test("cuil_valido","El CUIL no es válido",(e=> 0!==e&&cuilValidator(e.toString()))),
-    celular:Yup.number().typeError("Ingrese solo números").required("Es Requerido").test("celular","Ingrese un celular correcto.",(e=> 0!==e&&expRegulares.cel.test(e.toString()))),
-    fechaNacimiento:Yup.date().typeError("").required(sEsRequerido).max(new Date,"Verifica si es menor a la fecha actual")
+  const registroValidationSchema = Yup.object({
+    dni: Yup.number().typeError("Ingrese solo números").required("Es Requerido").test("dni_valido", "El DNI no es válido", (e => expRegulares.dni.test(e))),
+    cuitcuil: Yup.number().typeError("Ingrese solo números").required("Es Requerido").test("cuil_valido", "El CUIL no es válido", (e => 0 !== e && cuilValidator(e.toString()))),
+    celular: Yup.number().typeError("Ingrese solo números").required("Es Requerido").test("celular", "Ingrese un celular correcto.", (e => 0 !== e && expRegulares.cel.test(e.toString()))),
+    fechaNacimiento: Yup.date().typeError("").required(sEsRequerido).max(new Date, "Verifica si es menor a la fecha actual")
   });
 
   const codigoVerificacionCelular = async () => {
     const credential = PhoneAuthProvider.credential(idVerificacion, codigo);
     await signInWithCredential(auth, credential).then((res) => {
-      if(!res._tokenResponse.isNewUser){
-        setErrorExistInFirebase({message: "Ya una cuenta asociada a este numero", errorShow: true})  
-      }else{
+      if (!res._tokenResponse.isNewUser) {
+        setErrorExistInFirebase({ message: "Ya una cuenta asociada a este numero", errorShow: true })
+      } else {
         // Es un usuario nuevo
         authContext.dispatchManual('LOGIN', { token: auth.currentUser.accessToken })
       }
@@ -83,9 +83,9 @@ const RegistroGoogle = (props) => {
     };
 
     const phoneProvider = new PhoneAuthProvider(auth);
-    const verID = await phoneProvider.verifyPhoneNumber("+54" + data.celular,recaptchaVerifier.current);
+    const verID = await phoneProvider.verifyPhoneNumber("+54" + data.celular, recaptchaVerifier.current);
     setIdVerificacion(verID)
-    setStateModal({modalPhone:true,modalEmailVerificaton:false});
+    setStateModal({ modalPhone: true, modalEmailVerificaton: false });
   };
   return (
     <View>
@@ -94,12 +94,12 @@ const RegistroGoogle = (props) => {
         validationSchema={registroValidationSchema}
         onSubmit={handleSubmitGoogle}
       >
-        {({values,isSubmitting,errors,touched,isValid,handleBlur,handleChange,handleSubmit}) => (
+        {({ values, isSubmitting, errors, touched, isValid, handleBlur, handleChange, handleSubmit }) => (
           <View>
             <TextInputFmk
               name="dni"
               placeholder="Número de documento"
-              slabel="Número de documento"
+              slabel="Número de documento xx"
               onChangeText={handleChange("dni")}
               onBlur={handleBlur("dni")}
               value={values.dni}
@@ -238,38 +238,38 @@ const styles = StyleSheet.create({
     flexDirection: "row",
   },
   iconRow: {
-      height: 41,
-      flexDirection: "row",
-      flex: 1,
-      marginBottom: 10,
-      marginTop: -10
+    height: 41,
+    flexDirection: "row",
+    flex: 1,
+    marginBottom: 10,
+    marginTop: -10
   },
   styleIcon: {
-      fontSize: 30,
-      width: 40,
-      height: 41
+    fontSize: 30,
+    width: 40,
+    height: 41
   },
   textInfo: {
-      height: 29,
-      width: 265,
+    height: 29,
+    width: 265,
   },
   errorExistInFirebase: {
-      marginTop: -10,
-      marginLeft: 10,
-      marginBottom: 20,
-      color: estilosVar.rojoCrayola
+    marginTop: -10,
+    marginLeft: 10,
+    marginBottom: 20,
+    color: estilosVar.rojoCrayola
   },
   errorExistInFirebaseModal: {
-      marginTop: 10,
-      marginLeft: 10,
-      marginBottom: 20,
-      color: estilosVar.rojoCrayola
+    marginTop: 10,
+    marginLeft: 10,
+    marginBottom: 20,
+    color: estilosVar.rojoCrayola
   },
   // Modal
   modal: {
-      margin: 20
+    margin: 20
   },
-  inputFormModal:{
-      width: "100%",
+  inputFormModal: {
+    width: "100%",
   }
 });

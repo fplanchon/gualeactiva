@@ -1,9 +1,10 @@
 import { useEffect, useState, useRef, useContext } from "react";
-import { StyleSheet, Text, ScrollView, View } from "react-native";
+import { StyleSheet, Text, ScrollView, View, Modal } from "react-native";
 
 import { Input, Icon, Button, Card, SocialIcon } from "react-native-elements";
-import { useNavigation } from "@react-navigation/native";
-import { getAuth, GoogleAuthProvider,signInWithCredential,PhoneAuthProvider, deleteUser,fetchSignInMethodsForEmail } from "firebase/auth";
+import { Link, useNavigation } from "@react-navigation/native";
+import { getAuth, GoogleAuthProvider, signInWithCredential, PhoneAuthProvider, deleteUser, fetchSignInMethodsForEmail } from "firebase/auth";
+import { useUsrCiudadanoFirestore } from "../../customhooks/useUsrCiudadanoFirestore";
 import * as Google from "expo-auth-session/providers/google";
 import * as WebBrowser from "expo-web-browser";
 import { FirebaseRecaptchaVerifierModal } from 'expo-firebase-recaptcha';
@@ -16,12 +17,16 @@ import constantes from "../../utils/constantes";
 import { expRegulares } from "../../utils/validaciones";
 import Loading from "../../componentes/Loading";
 import ModalComp from "../../componentes/ModalComp";
+import { useTraducirFirebaseError } from "../../customhooks/useTraducirFirebaseError";
+import WebViewAfip from "./WebViewAfip";
 
 WebBrowser.maybeCompleteAuthSession();
 
 export default function Login() {
+
     const [loading, setLoading] = useState(false);
-    const [stateModal, setStateModal] = useState(false);
+    const [stateModalCelular, setStateModalCelular] = useState(false);
+    const [stateModalAfip, setStateModalAfip] = useState(false);
     const [showPass, setShowPass] = useState(false);
     const navigation = useNavigation();
 
@@ -31,13 +36,23 @@ export default function Login() {
     const auth = getAuth();
     const app = getApp()
     const recaptchaVerifier = useRef(null);
+    const initialCodeSend = { viewCodeInput: false, code: "" }
 
     const [numero, setNumero] = useState(null);
-    const [codeSend, setCodeSend] = useState({ viewCodeInput: false, code: "" });
+    const [codeSend, setCodeSend] = useState(initialCodeSend);
     const [verificationId, setVerificationId] = useState(null)
+    const { recuperarDatosDeSesion } = useUsrCiudadanoFirestore()
+    const { state: verifCelularError, dispatch: dispatchCelularError } = useTraducirFirebaseError()
+    const [errorNumCelular, setErrorNumCelular] = useState(null)
+
+    const blanquearCodeSend = () => {
+        //console.log('blanquearCodeSend')
+        setCodeSend(initialCodeSend)
+        setNumero(null)
+    }
 
     const sendMessage = async () => {
-        if (expRegulares.cel2.test(numero)) {
+        if (numero !== '' && expRegulares.cel2.test(numero)) {
             const phoneProvider = new PhoneAuthProvider(auth);
             const verID = await phoneProvider.verifyPhoneNumber(
                 "+54" + numero,
@@ -45,20 +60,33 @@ export default function Login() {
             );
             setVerificationId(verID)
             setCodeSend({ viewCodeInput: true, code: "" });
+            setErrorNumCelular(null)
+
+        } else {
+            setErrorNumCelular('Indique un numero válido')
         }
     };
 
     const signInWithPhone = async () => {
-        const credential = PhoneAuthProvider.credential(verificationId, codeSend.code );
-        await signInWithCredential(auth, credential).then((res) => {
+        const credential = PhoneAuthProvider.credential(verificationId, codeSend.code);
+
+        await signInWithCredential(auth, credential).then(async (res) => {
+            let payloadLogin = null;
             console.log("Nuevo usuario:", res._tokenResponse.isNewUser);
             if (!res._tokenResponse.isNewUser) {
-                authContext.dispatchManual('LOGIN', { token: auth.currentUser.accessToken })
+                payloadLogin = await recuperarDatosDeSesion()
+                if (payloadLogin) {
+                    authContext.dispatchManual('LOGIN', payloadLogin);
+                } else {
+                    console.log('Sin tados para recuperarDatosDeSesion login celular')
+                }
             } else {
                 deleteUser(getAuth().currentUser).then((res) => {
                     navigation.navigate("registro")
                 })
             }
+        }).catch((error) => {
+            dispatchCelularError({ type: error.code })
         })
     }
 
@@ -73,15 +101,15 @@ export default function Login() {
 
             signInWithCredential(auth, credential).then((res) => {
                 res.user && setLoading(false);
-                fetchSignInMethodsForEmail(auth,res.user.email).then(providers => {
+                fetchSignInMethodsForEmail(auth, res.user.email).then(providers => {
                     /*if(res.user.emailVerified && providers.find(p => p === "password") === "password"){
                         // Tiene mail verificado y se registró antes
                         authContext.dispatchManual('LOGIN', { token: auth.currentUser.accessToken })
                     }*/
-                    if(res._tokenResponse.isNewUser){
+                    if (res._tokenResponse.isNewUser) {
                         // Es nuevo usuario de google
-                        navigation.navigate("registro",{ user_data: res.user })
-                    }else {
+                        navigation.navigate("registro", { user_data: res.user })
+                    } else {
                         authContext.dispatchManual('LOGIN', { token: auth.currentUser.accessToken })
                     }
                 })
@@ -97,6 +125,16 @@ export default function Login() {
         setPassword(e.nativeEvent.text);
     };
 
+    const abrirModalCelular = () => {
+        dispatchCelularError({ type: null })
+        setErrorNumCelular(null)
+        setNumero(null)
+        setStateModalCelular(true)
+    }
+
+    const abrirModalAFIP = () => {
+        setStateModalAfip(true)
+    }
 
 
     return (
@@ -145,14 +183,14 @@ export default function Login() {
                 <Text style={styles.textRegister}> ¿Aún no tienes una cuenta?&nbsp;&nbsp; <Text style={styles.btnRegister} onPress={() => navigation.navigate("registro")} > Registrate </Text> </Text>
 
                 <View style={styles.boxSocial}>
-                    <Button buttonStyle={styles.btnLoginPhone} title="Iniciar con teléfono" onPress={() => stateModal ? setStateModal(false) :
-                        setStateModal(true)} />
+                    <Button buttonStyle={styles.btnLoginPhone} title="Iniciar con teléfono" onPress={abrirModalCelular} />
                     <SocialIcon onPress={popupGoogle} title={"Iniciar sesión con Google"} button={true} type={"google"} />
+                    <Button buttonStyle={styles.btnLoginAFIP} title="Iniciar con AFIP" onPress={abrirModalAFIP} />
                 </View>
             </Card>
 
-            {stateModal &&
-                <ModalComp stateModal={stateModal} titulo="Iniciar sesión con teléfono">
+            {stateModalCelular &&
+                <ModalComp stateModal={stateModalCelular} setModalState={setStateModalCelular} titulo="Iniciar sesión con teléfono">
                     <View style={styles.modal}>
                         {!codeSend.viewCodeInput ?
                             <View>
@@ -163,7 +201,12 @@ export default function Login() {
                                     <Text style={styles.textInfo}>Código de área sin "0" + Teléfono sin "15"</Text>
                                 </View>
                                 <Button title="Iniciar sesion" onPress={sendMessage} style={styles.btnRegister} />
-
+                                {(errorNumCelular) ?
+                                    <>
+                                        <Text style={stylesGral.errorText}>{errorNumCelular}</Text>
+                                    </>
+                                    : null
+                                }
                                 <FirebaseRecaptchaVerifierModal ref={recaptchaVerifier} firebaseConfig={app.options} />
                             </View>
                             :
@@ -173,11 +216,28 @@ export default function Login() {
                                     <Icon name='cellphone-message' type='material-community' size={24} color='gray' />
                                 } />
                                 <Button title="Verificar codigo" onPress={signInWithPhone} style={styles.btnCode} />
+                                <Text>{"\n"}</Text>
+                                <Button title=" Cambiar Nº teléfono" onPress={blanquearCodeSend} style={styles.btnCode} />
+
+                                {(verifCelularError) ?
+                                    <>
+                                        <Text style={stylesGral.errorText}>{verifCelularError}</Text>
+                                    </>
+                                    : null
+                                }
                             </View>
                         }
                     </View>
                 </ModalComp>
             }
+
+
+            <Modal visible={stateModalAfip} animationType="slide" visible={stateModalAfip} titulo="Iniciar sesión con AFIP">
+                <Icon type="material-community" name="close" color="#000" onPress={() => { setStateModalAfip(false) }} />
+                <WebViewAfip></WebViewAfip>
+
+            </Modal>
+
 
             {loading && <Loading isLoading={loading} text={"Espere un momento..."} />}
         </ScrollView>
@@ -229,7 +289,13 @@ const styles = StyleSheet.create({
         marginRight: 5,
         marginLeft: 5,
     },
-
+    btnLoginAFIP: {
+        backgroundColor: "#44ffaa",
+        borderRadius: 25,
+        height: 52,
+        marginRight: 5,
+        marginLeft: 5,
+    },
     // Modal
     modal: {
         margin: 20

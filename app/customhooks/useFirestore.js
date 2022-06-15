@@ -57,8 +57,15 @@ export const useFirestore = () => {
 
     const returnGetDataDoc = async (coleccion, id) => {
         try {
-            setError(false)
             setLoading(true)
+
+            console.log('returnGetDataDoc con:', coleccion, id)
+
+            // id = id.toSting()
+            if (!isNaN(id)) {
+                id = id.toString()
+            }
+
             const Ref = doc(dbFirestore, coleccion, id)
             const docSnap = await getDoc(Ref)
             //console.log(docSnap)
@@ -72,7 +79,7 @@ export const useFirestore = () => {
 
         } catch (error) {
             console.log('error returnGetDataDoc Firestore: ', error)
-            throw error
+            throw error.message
         } finally {
             setLoading(false)
         }

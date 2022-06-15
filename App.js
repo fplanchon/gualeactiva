@@ -132,7 +132,7 @@ export default function App({ navigation }) {
             try {
                 if (!isNaN(datoUsr)) {
                     const ciudadanoEmail = await axios.post(constantes.API + 'buscaEmailCiudadanoConDni', { dni: datoUsr });
-                    //console.log('ciudadanoEmail', ciudadanoEmail);
+                    console.log('ciudadanoEmail', ciudadanoEmail);
                     if (ciudadanoEmail.data.success) {
                         email = ciudadanoEmail.data.data.email_activa;
                     } else {

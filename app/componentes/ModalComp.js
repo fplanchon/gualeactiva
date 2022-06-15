@@ -1,19 +1,23 @@
 import { StyleSheet, Text, View, Modal } from 'react-native'
-import React,{useState} from 'react'
+import React, { useState } from 'react'
 import { Icon } from 'react-native-elements';
 
 const ModalComp = (props) => {
-  const [visible, setVisible] = useState(props.stateModal)
+  //const [visible, setVisible] = useState(props.stateModal)
+  const visible = props.stateModal
+  const setModalState = props.setModalState
+  const ocultarIconClose = props.ocultarIconClose || false
 
   return (
     <View>
+
       <Modal visible={visible} animationType="slide">
-        <Icon type="material-community" name="close" color="#000" onPress={() => setVisible(false) && !props.stateModal } containerStyle={styles.iconContainer}/>
+        {!ocultarIconClose && <Icon type="material-community" name="close" color="#000" onPress={() => { setModalState(false) }} containerStyle={styles.iconContainer} />}
         <View>
-            <Text style={styles.tituloCard}>{props.titulo}</Text>
-            <View style={StyleSheet.children}>
-              {props.children}
-            </View>
+          <Text style={styles.tituloCard}>{props.titulo}</Text>
+          <View style={StyleSheet.children}>
+            {props.children}
+          </View>
         </View>
       </Modal>
     </View>
@@ -23,8 +27,8 @@ const ModalComp = (props) => {
 export default ModalComp
 
 const styles = StyleSheet.create({
-  iconContainer:{
-    marginTop:20
+  iconContainer: {
+    marginTop: 20
   },
   tituloCard: {
     fontSize: 25,

@@ -1,9 +1,9 @@
 import React, { useEffect, useContext, useState, useRef } from "react"
 import { ScrollView, StyleSheet, View } from "react-native";
 
-import { Text, Icon, Input,Button } from "react-native-elements";
-import { getAuth, createUserWithEmailAndPassword, updateProfile, deleteUser,PhoneAuthProvider, fetchSignInMethodsForEmail, signInWithCredential, sendEmailVerification } from 'firebase/auth'
-import { getApp,initFirebase } from "../../utils/firebase-config"
+import { Text, Icon, Input, Button } from "react-native-elements";
+import { getAuth, createUserWithEmailAndPassword, updateProfile, deleteUser, PhoneAuthProvider, fetchSignInMethodsForEmail, signInWithCredential, sendEmailVerification } from 'firebase/auth'
+import { getApp, initFirebase } from "../../utils/firebase-config"
 import * as Yup from 'yup'
 import { Formik } from 'formik'
 import DateTimePickerModal from "react-native-modal-datetime-picker";
@@ -16,6 +16,7 @@ import TextInputFmk from "../../componentes/TextInputFmk";
 import SubmitBtnFmk from "../../componentes/SubmitBtnFmk";
 import Loading from "../../componentes/Loading";
 import ModalComp from "../../componentes/ModalComp";
+import { useNavigation } from "@react-navigation/native";
 
 import estilosVar from "../../utils/estilos";
 import { cuilValidator, expRegulares } from "../../utils/validaciones";
@@ -30,6 +31,7 @@ export default function Registro({ route }) {
     const { authContext } = useContext(AuthContext);
     const app = getApp();
     const auth = getAuth(initFirebase);
+    const navigation = useNavigation();
 
     const registroInitialState = {
         nombre: '',
@@ -45,15 +47,17 @@ export default function Registro({ route }) {
     const [pedir, setPedir] = useState(0)
     const [pedirCiud, setPedirCiud] = useState(0)
 
-    const { setDocument, deleteDocument } = useFirestore()
+    const { setDocument, deleteDocument, setDocumentNoState } = useFirestore()
 
     const colUsuariosInfo = constantes.colecciones.usuariosInfo;
     const [idVerificacion, setIdVerificacion] = useState(null)
     const [codigo, setCodigo] = useState(null);
-    const [userExistPhone, setUserExistPhone] = useState({existe: false, idUser: null});
+    const [userExistPhone, setUserExistPhone] = useState({ existe: false, idUser: null, currentUser: null });
     const [correoVerificar, setCorreoVerificar] = useState(null);
 
     const { state: firebaseError, dispatch: dispatchFirebaseError } = useTraducirFirebaseError()
+    const { state: verifCelularError, dispatch: dispatchCelularError } = useTraducirFirebaseError()
+    const { state: emailExisteError, dispatch: dispatchEmailExisteError } = useTraducirFirebaseError()
 
     const { eliminarUsuarioEnAuthYFirestore, setCiudadanoFirestore, setUsuarioFirestore, updateProfileAuth } = useUsrCiudadanoFirestore()
 
@@ -75,19 +79,19 @@ export default function Registro({ route }) {
         confirmaPass: useRef(null)
     }
 
-    const {user_data} = route.params ? route.params : false;
+    const { user_data } = route.params ? route.params : false;
     // user_data && console.log("Param",user_data)
 
     const [showPassword1, setShowPassword1] = useState(true)
     const [showPassword2, setShowPassword2] = useState(true)
-    const [errorExistInFirebase, setErrorExistInFirebase] = useState({ message: "", errorShow: false });
+    //const [errorExistInFirebase, setErrorExistInFirebase] = useState({ message: "", errorShow: false });
     const recaptchaVerifier = useRef(null);
     const [dataPicker, setDataPicker] = useState(false)
     const [datePlaceHolder, setDatePlaceHolder] = useState(null)
-    const [stateModal, setStateModal] = useState({
-        modalPhone: false,
-        modalEmailVerificaton: false
-    });
+    const [visibleModalPhone, setVisibleModalPhone] = useState(false)
+    const [visibleModalUsuarioExiste, setVisibleModalUsuarioExiste] = useState(false)
+
+
 
     const handleDatePicker = () => setDataPicker(!dataPicker)
     const handleConfirm = (date) => {
@@ -114,36 +118,35 @@ export default function Registro({ route }) {
     useEffect(async () => {
         route.params?.user_data && setUserProvider(route.params?.user_data.providerData);
 
-        if(userExistPhone.existe){
+        if (userExistPhone.existe) {
             const auth = getAuth();
             if (dataRegistro.celular && dataRegistro.celular !== null) {
                 const phoneProvider = new PhoneAuthProvider(auth);
-                const verificationId = await phoneProvider.verifyPhoneNumber( "+54" + dataRegistro.celular, recaptchaVerifier.current );
+                const verificationId = await phoneProvider.verifyPhoneNumber("+54" + dataRegistro.celular, recaptchaVerifier.current);
+                console.log('verificationId', verificationId)
                 verificationId && setIdVerificacion(verificationId);
-                setStateModal({modalPhone: true, modalEmailVerificaton: false});
+
+                setVisibleModalPhone(true);
             }
-        }else{
+        } else {
             if (pedir > 0) {
                 const registrar = async () => {
                     dispatchFirebaseError(false);
                     try {
                         await createUserWithEmailAndPassword(auth, dataRegistro.email, dataRegistro.pass).then((userCredential) => {
-                            console.log("Crear usuario con contraseña:",userCredential);
-                            if(userCredential){
+                            console.log("Crear usuario con contraseña:", userCredential);
+                            if (userCredential) {
                                 setCorreoVerificar(dataRegistro.email);
-                                sendEmailVerification(auth.currentUser).then(res => {
-                                    if (res === undefined) {
-                                        console.log(res);  
-                                    }
-                                })
-                                //refetch()
+                                refetch()
                             }
                         });
-                    }catch (error) {
-                        console.log("Error", auth.currentUser)
-                        console.log("Usuario con proveedor teléfono",userExistPhone.idUser);
-                        deleteUser(userExistPhone.idUser).then((res) =>{
-                            navigation.navigate("LOGIN")
+                    } catch (error) {
+                        dispatchFirebaseError({ type: error.code });
+                        console.log("Error", error)
+                        console.log("Usuario con proveedor teléfono", userExistPhone.currentUser);
+                        //Borro usuario celular
+                        deleteUser(userExistPhone.currentUser).then((res) => {
+                            setVisibleModalPhone(false);
                         })
                     }
                 }
@@ -170,9 +173,25 @@ export default function Registro({ route }) {
                                 'cuitcuil': dataRegistro.cuitcuil
                             }
 
+
+                            await sendEmailVerification(auth.currentUser).then(res => {
+                                if (res === undefined) {
+                                    console.log(res);
+                                }
+                            })
+
                             await updateProfileAuth(dataRegistro.apellido + ' ' + dataRegistro.nombre)
 
                             await setUsuarioFirestore(res.data.data.id_ciudadano)
+
+                            await setDocumentNoState(colUsuariosInfo, userExistPhone.idUser, {
+                                'id_ciudadano': res.data.data.id_ciudadano,
+                            }).then(() => {
+
+                            }).catch((error) => {
+                                console.log('setDocumentNoState usuario celular: ', error);
+                                throw error
+                            });
 
                             await setCiudadanoFirestore(dataCiudadano)
 
@@ -197,6 +216,10 @@ export default function Registro({ route }) {
 
             if (flagError) {
                 eliminarUsuarioEnAuthYFirestore()
+
+                deleteUser(userExistPhone.currentUser).then((res) => {
+                    //setVisibleModalPhone(false);
+                })
             }
 
         }
@@ -204,40 +227,39 @@ export default function Registro({ route }) {
         effectRes()
     }, [res])
 
-    const verificarSiExiste = async (valor,hayError,tipo) => {
-        if(hayError === undefined){
-            tipo === "email" && console.log("Es un dato validado",valor)
+    const verificarSiExiste = async (valor, hayError, tipo) => {
+        if (hayError === undefined) {
+            tipo === "email" && console.log("Es un dato validado", valor)
             if (tipo === "email") {
 
-                fetchSignInMethodsForEmail(auth,valor).then(res => {
+                fetchSignInMethodsForEmail(auth, valor).then(res => {
                     /* Devuelve s/ proveedor: Array [ "google.com", o "password" ] */
                     if (res.length !== 0) {
-                        setErrorExistInFirebase({
-                            message: "Ya existe una cuenta con este correo.",
-                            errorShow: true
-                        })
+                        dispatchEmailExisteError({ type: 'Email utilizado en otra cuenta' })
                     } else {
-                        setErrorExistInFirebase({ message: "", errorShow: false });
+                        dispatchEmailExisteError({ type: null });
                     }
                 })
-            }else{
-                const credential = PhoneAuthProvider.credential( idVerificacion, codigo );
-                await signInWithCredential(auth, credential).then(async (res)=> {
+            } else {
+                const credential = PhoneAuthProvider.credential(idVerificacion, codigo);
+                await signInWithCredential(auth, credential).then(async (res) => {
                     console.log("Nuevo usuario:", res);
                     if (!res._tokenResponse.isNewUser) {
-                        setErrorExistInFirebase({
-                            message: "Ya existe una cuenta con este celular.",
-                            errorShow: true
-                        })
-                    }else{
-                        setUserExistPhone({existe: false, idUser: res.user.uid})
-                        setStateModal({modalPhone: false, modalEmailVerificaton: true})
+                        dispatchCelularError({ type: 'Celular utilizado por otra cuenta' })
+                    } else {
+                        dispatchCelularError({ type: null })
+                        setUserExistPhone({ existe: false, idUser: res.user.uid, currentUser: res.user })
+                        setVisibleModalPhone(false)
+                        //vuelvo a ejecutar el registro pero esta vez pasa a registrar usuario en firebase
                         setPedir(pedir + 1);
                     }
+                }).catch((error) => {
+                    dispatchCelularError({ type: error.code })
                 });
             }
         }
     }
+
     const handleEditDni = async (values) => {
         //values.nombre = 'asasas'
         try {
@@ -245,6 +267,15 @@ export default function Registro({ route }) {
             //console.log('CiudParaAutocompletar', CiudParaAutocompletar.data)
             if (CiudParaAutocompletar.data.data !== null) {
                 let AutoCiud = CiudParaAutocompletar.data.data
+                console.log('AutoCiud', AutoCiud)
+
+                if (typeof AutoCiud['id_usuario'] !== 'undefined') {
+                    if (AutoCiud['id_usuario'] !== null) {
+                        setVisibleModalUsuarioExiste(true)
+                        return
+                    }
+                }
+
                 values.nombre = AutoCiud['nombre']
                 values.apellido = AutoCiud['apellido']
                 values.cuitcuil = AutoCiud['cuitcuil']
@@ -254,6 +285,7 @@ export default function Registro({ route }) {
                 Inputs.cuitcuil.current.focus()
                 Inputs.cuitcuil.current.focus()
                 //doble para que impacte el autocompletado
+
             }
         } catch (error) {
             console.log('err', error)
@@ -262,18 +294,22 @@ export default function Registro({ route }) {
 
     const submitRegistro = (values, formikActions) => {
         //console.log('submitRegistro')
-        setDataRegistro(values)
-        setUserExistPhone({existe: true, idUser: null})
+        console.log('emailExisteError', emailExisteError)
+        console.log('emailExisteError', verifCelularError)
+        if (!emailExisteError) {
+            setDataRegistro(values)
+            setUserExistPhone({ existe: true, idUser: null, currentUser: null })
 
-        setPedir(pedir + 1)
+            setPedir(pedir + 1)
+        }
         formikActions.setSubmitting(false)
     }
 
     return (
         <ScrollView style={stylesGral.formContainer}  >
             <Text h4 style={styles.titulo} >Registrate en GualeActiva</Text>
-            {!user_data && !stateModal.modalPhone ?
-            <Formik initialValues={registroInitialState} validationSchema={registroValidationSchema} onSubmit={submitRegistro}>
+            {!user_data ? //&& !stateModal.modalPhone ?
+                <Formik initialValues={registroInitialState} validationSchema={registroValidationSchema} onSubmit={submitRegistro}>
                     {({ values, isSubmitting, errors, touched, isValid, handleBlur, handleChange, handleSubmit }) => (
                         <>
                             <TextInputFmk
@@ -335,7 +371,13 @@ export default function Registro({ route }) {
                                 ref={Inputs.email}
                                 onSubmitEditing={() => { Inputs.celular.current.focus(); }} blurOnSubmit={false}
                             />
-                            {errorExistInFirebase.errorShow && <Text style={styles.errorExistInFirebase}>{errorExistInFirebase.message}</Text>}
+                            {(emailExisteError) ?
+                                <>
+                                    <Text>err emailExisteError</Text>
+                                    <Text style={stylesGral.errorText}>{JSON.stringify(emailExisteError)}</Text>
+                                </>
+                                : null
+                            }
                             <TextInputFmk
                                 name="celular"
                                 placeholder="Celular"
@@ -344,7 +386,7 @@ export default function Registro({ route }) {
                                 onChangeText={handleChange('celular')}
                                 onBlur={handleBlur('celular')}
                                 value={parseInt(values.celular[0]) === 0 ? values.celular.slice(1) : values.celular}
-                                onEndEditing={(e) => verificarSiExiste(e.nativeEvent.text, errors.celular, "celular")}
+                                onEndEditing={(e) => {/*verificarSiExiste(e.nativeEvent.text, errors.celular, "celular")*/ }}
                                 keyboardType='number-pad'
                                 ref={Inputs.celular}
                                 onSubmitEditing={() => { Inputs.fechaNacimiento.current.focus(); }} blurOnSubmit={false}
@@ -355,6 +397,13 @@ export default function Registro({ route }) {
                                     <Text style={styles.textInfo}>Código de área sin "0" + Teléfono sin "15"</Text>
                                 </View>
                             </View>
+                            {(verifCelularError) ?
+                                <>
+                                    <Text>err verifCelularError</Text>
+                                    <Text style={stylesGral.errorText}>{JSON.stringify(verifCelularError)}</Text>
+                                </>
+                                : null
+                            }
                             <TextInputFmk
                                 name="fechaNacimiento"
                                 placeholder={datePlaceHolder ? datePlaceHolder : "Fecha Nacimiento"}
@@ -419,7 +468,7 @@ export default function Registro({ route }) {
                                 }
                                 ref={Inputs.confirmaPass}
                             />
-                            <SubmitBtnFmk submitting={isSubmitting} onPress={handleSubmit} title='Registrarme' disable={isValid} errorFir={errorExistInFirebase} />
+                            <SubmitBtnFmk submitting={isSubmitting} onPress={handleSubmit} title='Registrarme' disable={isValid} />
                             {(err) ?
                                 <>
                                     <Text>Err axios</Text>
@@ -441,26 +490,19 @@ export default function Registro({ route }) {
                                     <Text>err firebase</Text>
                                     <Text style={stylesGral.errorText}>{JSON.stringify(firebaseError)}</Text>
                                 </>
-                            : null
+                                : null
                             }
-                        {(firebaseError) ?
-                            <>
-                                <Text>err firebase</Text>
-                                <Text style={stylesGral.errorText}>{JSON.stringify(firebaseError)}</Text>
-                            </>
-                            : null
-                        }
-                        <FirebaseRecaptchaVerifierModal
-                            ref={recaptchaVerifier}
-                            firebaseConfig={app.options}
-                        />
-                    </>
-                )}
-            </Formik>
-            : <RegistroGoogle userProvider={user_data}/>
-            }   
-            {stateModal.modalPhone &&
-                <ModalComp stateModal={stateModal.modalPhone} titulo="Verificar telefono">
+                            <FirebaseRecaptchaVerifierModal
+                                ref={recaptchaVerifier}
+                                firebaseConfig={app.options}
+                            />
+                        </>
+                    )}
+                </Formik>
+                : <RegistroGoogle userProvider={user_data} refetch={refetch} />
+            }
+            {visibleModalPhone &&
+                <ModalComp stateModal={visibleModalPhone} setModalState={setVisibleModalPhone} titulo="Verificar telefono">
                     <View style={styles.modal}>
                         <Text>Ingrese el codigo recibido</Text>
                         <Input
@@ -472,22 +514,29 @@ export default function Registro({ route }) {
                             }
                             onChange={(e) => setCodigo(e.nativeEvent.text)}
                         />
-                        <Button title="Verificar codigo" onPress={verificarSiExiste} style={styles.btnRegister}/>
-                        {errorExistInFirebase.errorShow && <Text style={styles.errorExistInFirebaseModal}>{errorExistInFirebase.message}</Text>}
+                        <Button title="Verificar codigo" onPress={verificarSiExiste} style={styles.btnRegister} />
+                        {(verifCelularError) ?
+                            <>
+                                <Text>err verifCelularError</Text>
+                                <Text style={stylesGral.errorText}>{JSON.stringify(verifCelularError)}</Text>
+                            </>
+                            : null
+                        }
                     </View>
                 </ModalComp>
             }
-            {stateModal.modalEmailVerificaton &&
-                <ModalComp stateModal={stateModal.modalEmailVerificaton} titulo="Validar correo">
+
+            {visibleModalUsuarioExiste &&
+                <ModalComp stateModal={visibleModalUsuarioExiste} setModalState={setVisibleModalUsuarioExiste} ocultarIconClose={true} titulo="Ciudadano Registrado en GualeActiva">
                     <View style={styles.modal}>
-                        <Text>Un email con el enlace de la confirmación de la cuenta ha sido enviado a su correo: <Text style={styles.correo}>{correoVerificar}</Text></Text>
-                        <Text>Verifique su correo y vuelva para continuar!</Text>
-                        <Icon name='email-alert' type='material-community' color={estilosVar.greenBlue} size={100} />
-                        <Button title="Continuar" buttonStyle={styles.btnContinuar} onPress={() => authContext.dispatchManual('LOGIN', { token: auth.currentUser.accessToken})}/>
+                        <Text>El Ciudadano indicado ya posee usuario en GualeActiva, utilice sus credenciales con normalidad</Text>
+                        <Text>{'\n'}</Text>
+                        <Text style={[styles.btnRegister, styles.titulo]} onPress={() => navigation.navigate("Login")} > Ir al Login </Text>
                     </View>
                 </ModalComp>
             }
             <Text>{pedir}</Text>
+
             {loading ? (
                 <Loading isLoading={true} text={"Consultando..."} />
             ) : null}
@@ -548,7 +597,7 @@ const styles = StyleSheet.create({
     modal: {
         margin: 20
     },
-    inputFormModal:{
+    inputFormModal: {
         width: "100%",
     },
     correo: {
