@@ -2,11 +2,11 @@ import { useState } from "react";
 import { useFirestore } from "./useFirestore";
 import constantes from "../utils/constantes";
 import { getAuth, createUserWithEmailAndPassword, updateProfile, deleteUser, signInWithEmailAndPassword, signOut, sendEmailVerification } from 'firebase/auth'
-
+import { getStorage, getDownloadURL, ref,uploadBytes } from "firebase/storage";
 
 export const useUsrCiudadanoFirestore = () => {
     const auth = getAuth()
-    const { data: dataUsr, error: errorUsr, loading: loadingUsr, getDataDoc, returnGetDataDoc, setDocumentNoState } = useFirestore()
+    const { data: dataUsr, error: errorUsr, loading: loadingUsr, getDataDoc, returnGetDataDoc, setDocumentNoState, getBlobFromUri } = useFirestore()
     const { setDocument, deleteDocument } = useFirestore()
 
 
@@ -134,6 +134,7 @@ export const useUsrCiudadanoFirestore = () => {
     const setCiudadanoFirestore = async (PimUsuario) => {
         await setDocumentNoState(colCiudadanos, PimUsuario.id_ciudadano, {
             'nombres': PimUsuario.nombres,
+            'apellido': PimUsuario.apellido,
             'cuitcuil': PimUsuario.cuitcuil,
             'email': PimUsuario.email
         }).then(() => {
@@ -154,6 +155,46 @@ export const useUsrCiudadanoFirestore = () => {
         });
     }
 
+    const updateProfileFirestore = async (datos, PimUsuario) => {
+        await setDocument(colCiudadanos,PimUsuario,datos).then(res => {
+            console.log('Respuesta',res)
+        }).catch((error) => {
+            console.log('error updateProfileFirestore', error);
+            throw error
+        });
+    };
+
+    const getURIToBlob = async (uri) => {
+        return await getBlobFromUri(uri)
+    };
+    
+
+    const uploadImageStorageAndSync = async (fileBlob, PimUsuario) => {
+        const imgName = "photoUrl-" + auth.currentUser.uid;  
+        // Crear referencia al cloud storage
+        const storage = getStorage();
+        // Crear referencia a la imagen a subir
+        const refPhotoUrl =  `images/photoUrl/${imgName}.jpg`
+        const storageRef = ref(storage, refPhotoUrl);
+
+        console.log("Subiendo imagen", imgName);
+        uploadBytes(storageRef, fileBlob).then(async (snapshot) => {
+            // Referencia en firestore en el doc del usuario
+            await setDocument(colCiudadanos,PimUsuario,{ photoUrl: snapshot.metadata.fullPath })
+            .then(res => {
+                console.log('Respuesta',res)
+            }).catch((error) => {
+                console.log('error setDocument', error);
+                throw error
+            });
+
+            // Obtiene el enlace de la imagen subida y actualiza el perfil.
+            const imgUrl = await getDownloadURL(ref(storage, refPhotoUrl))
+            await updateProfile(auth.currentUser, { photoURL: imgUrl })
+        });
+    };
+    
+
     return {
         dataUsr,
         errorUsr,
@@ -168,6 +209,9 @@ export const useUsrCiudadanoFirestore = () => {
         setUsuarioFirestore,
         setCiudadanoFirestore,
         recuperarDatosDeSesion,
-        returnGetDataDoc
+        returnGetDataDoc,
+        updateProfileFirestore,
+        getURIToBlob,
+        uploadImageStorageAndSync
     }
 }

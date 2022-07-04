@@ -18,10 +18,9 @@ import MenuStack from "./app/navigations/MenuStack"
 import axiosInstance from './app/utils/axiosInstance'
 import constantes from "./app/utils/constantes"
 import LoginStack from './app/navigations/LoginStack'
+import PerfilStack from './app/navigations/PerfilStack';
 import { navigationRef } from "./app/navigations/RootNavigation"
 import { useUsrCiudadanoFirestore } from "./app/customhooks/useUsrCiudadanoFirestore"
-
-
 
 LogBox.ignoreAllLogs();
 
@@ -159,6 +158,10 @@ export default function App({ navigation }) {
 
                     if (response.data.success) {
                         const PimUsuario = response.data.data;
+                        const temp = PimUsuario.nombres
+                        delete PimUsuario.nombres
+                        PimUsuario['nombres'] = temp.split(' ').slice(1).join(' ');
+                        PimUsuario['apellido'] = temp.split(' ').slice(0,1).join(' ');
                         await crearUsuarioEmailYPassConCiudadano(email, password, PimUsuario).then(() => {
                             authContext.signIn({ datoUsr, password });
                         }).catch((error) => {
@@ -273,8 +276,9 @@ export default function App({ navigation }) {
                         })}
                     >
 
-                        <Tab.Screen name="home-stack" component={HomeStack} options={{ title: "Home", headerShown: false }} />
-                        <Tab.Screen name="menu-stack" component={MenuStack} options={{ title: "Menu", headerShown: false }} />
+                    <Tab.Screen name="home-stack" component={HomeStack} options={{ title: "Inicio", headerShown: false }} />
+                    <Tab.Screen name="perfil-stack" component={PerfilStack} options={{ title: "Mi perfil", headerShown: false }} />
+                    {/* <Tab.Screen name="menu-stack" component={MenuStack} options={{ title: "Menu", headerShown: false }} /> */}
 
                     </Tab.Navigator>
                 ) :
@@ -300,10 +304,13 @@ function screenOption(route, color) {
             iconName = "compass";
             break;
         case "home-stack":
-            iconName = "star-outline";
+            iconName = "home";
             break;
         case "login-stack":
             iconName = "home";
+            break;
+        case "perfil-stack":
+            iconName = "account";
             break;
         default:
             break;

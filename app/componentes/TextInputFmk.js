@@ -9,7 +9,7 @@ const TextInputFmk = (props, ref) => {
     return (
         <>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                <Text style={{ fontWeight: 'bold' }}>{slabel}</Text>
+                {slabel && <Text style={{ fontWeight: 'bold' }}>{slabel}</Text>}
                 {error ? (
                     <Text style={stylesGral.errorText}>{error}</Text>
                 ) : null}

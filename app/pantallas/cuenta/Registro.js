@@ -169,7 +169,8 @@ export default function Registro({ route }) {
                             const dataCiudadano = {
                                 'id_ciudadano': sId_ciudadano,
                                 'email': dataRegistro.email,
-                                'nombres': dataRegistro.apellido + ' ' + dataRegistro.nombre,
+                                'nombres': dataRegistro.nombre,
+                                'apellido': dataRegistro.apellido,
                                 'cuitcuil': dataRegistro.cuitcuil
                             }
 
@@ -322,7 +323,7 @@ export default function Registro({ route }) {
                                 value={values.dni}
                                 keyboardType='number-pad'
                                 ref={Inputs.dni}
-                                onSubmitEditing={() => { handleEditDni(values) }} blurOnSubmit={false}
+                                onSubmitEditing={() => { handleEditDni(values);Inputs.cuitcuil.current.focus() }} blurOnSubmit={false}
                             />
                             <TextInputFmk
                                 name="cuitcuil"
@@ -334,7 +335,7 @@ export default function Registro({ route }) {
                                 value={values.cuitcuil}
                                 keyboardType='number-pad'
                                 ref={Inputs.cuitcuil}
-                                onSubmitEditing={() => { Inputs.email.current.focus(); }} blurOnSubmit={false}
+                                onSubmitEditing={() => { Inputs.nombre.current.focus(); }} blurOnSubmit={false}
                             />
                             <TextInputFmk
                                 name="nombre"
@@ -356,7 +357,7 @@ export default function Registro({ route }) {
                                 onBlur={handleBlur('apellido')}
                                 value={values.apellido}
                                 ref={Inputs.apellido}
-                                onSubmitEditing={() => { Inputs.dni.current.focus(); }} blurOnSubmit={false}
+                                onSubmitEditing={() => { Inputs.email.current.focus(); }} blurOnSubmit={false}
                             />
 
                             <TextInputFmk
