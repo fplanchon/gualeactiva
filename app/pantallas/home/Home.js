@@ -7,7 +7,6 @@ import { useNavigation } from "@react-navigation/native";
 import ButtonHome from "../../componentes/home/ButtonHome"
 import stylesGral from "../../utils/StyleSheetGeneral"
 import estilosVar from "../../utils/estilos"
-import { useNavigation } from "@react-navigation/native"
 
 
 export default function Home() {
@@ -19,6 +18,7 @@ export default function Home() {
         { id: 2, icon: "calendar", title: "Turnos" },
         { id: 3, icon: "file-document", title: "Tasas (boletas)", onPress: () => navigation.navigate("tasasHome") },
         { id: 4, icon: "ticket", title: "Multas" },
+        { id: 5, icon: "code-brackets", title: "Pruebas", onPress: () => navigation.navigate("Sandbox") },
     ]
 
     const WIDTH = Dimensions.get("window").width;
