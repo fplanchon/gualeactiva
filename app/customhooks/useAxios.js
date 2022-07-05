@@ -56,9 +56,11 @@ axiosInstance.interceptors.response.use(
             }*/
 
             if (err.response.status === 401 && err.response.data) {
-                RootNavigation.navigate('Logout');
+                //RootNavigation.navigate('Logout');
             }
+
         }
+
         return Promise.reject(err);
     }
 );
@@ -75,7 +77,7 @@ const useAxios = (configParams) => {
 
     configParams = {
         ...configParams,
-        headers: { ...configParams.headers, common: { 'user-token': loginState.userToken } }
+        headers: { ...configParams.headers, common: { 'user-token': loginState.userToken, 'type-login': loginState.typeLogin } }
     }
 
     useEffect(() => {

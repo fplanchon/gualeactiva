@@ -41,6 +41,7 @@ export default function App({ navigation }) {
         usuarioInfoFs: null,
         isError: false,
         errorText: '',
+        typeLogin: null
     };
 
     const loginReducer = (prevState, action) => {
@@ -87,6 +88,7 @@ export default function App({ navigation }) {
                     loadingText: '',
                     isError: false,
                     errorText: '',
+                    typeLogin: action.typeLogin
                 };
             case 'LOGOUT':
                 return {

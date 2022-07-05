@@ -2,7 +2,7 @@ import { useEffect, useState, useRef, useContext } from "react";
 import { StyleSheet, Text, ScrollView, View, Modal } from "react-native";
 
 import { Input, Icon, Button, Card, SocialIcon } from "react-native-elements";
-import { Link, useNavigation } from "@react-navigation/native";
+import { useNavigation } from "@react-navigation/native";
 import { getAuth, GoogleAuthProvider, signInWithCredential, PhoneAuthProvider, deleteUser, fetchSignInMethodsForEmail } from "firebase/auth";
 import { useUsrCiudadanoFirestore } from "../../customhooks/useUsrCiudadanoFirestore";
 import * as Google from "expo-auth-session/providers/google";
@@ -19,6 +19,8 @@ import Loading from "../../componentes/Loading";
 import ModalComp from "../../componentes/ModalComp";
 import { useTraducirFirebaseError } from "../../customhooks/useTraducirFirebaseError";
 import WebViewAfip from "./WebViewAfip";
+import WebViewAnses from "./WebViewAnses";
+import AsyncStorage from '@react-native-async-storage/async-storage'
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -27,6 +29,7 @@ export default function Login() {
     const [loading, setLoading] = useState(false);
     const [stateModalCelular, setStateModalCelular] = useState(false);
     const [stateModalAfip, setStateModalAfip] = useState(false);
+    const [stateModalAnses, setStateModalAnses] = useState(false);
     const [showPass, setShowPass] = useState(false);
     const navigation = useNavigation();
 
@@ -45,23 +48,31 @@ export default function Login() {
     const { state: verifCelularError, dispatch: dispatchCelularError } = useTraducirFirebaseError()
     const [errorNumCelular, setErrorNumCelular] = useState(null)
 
+    useEffect(async () => {
+        let numeroCelular = await AsyncStorage.getItem('numeroCelular');
+        console.log('numeroCelular', numeroCelular)
+        setNumero(numeroCelular)
+    }, [])
+
     const blanquearCodeSend = () => {
         //console.log('blanquearCodeSend')
         setCodeSend(initialCodeSend)
         setNumero(null)
+        AsyncStorage.setItem('numeroCelular', null)
     }
 
     const sendMessage = async () => {
+        console.log('numero 2', numero)
         if (numero !== '' && expRegulares.cel2.test(numero)) {
             const phoneProvider = new PhoneAuthProvider(auth);
             const verID = await phoneProvider.verifyPhoneNumber(
                 "+54" + numero,
                 recaptchaVerifier.current
             );
+            AsyncStorage.setItem('numeroCelular', numero)
             setVerificationId(verID)
-            setCodeSend({ viewCodeInput: true, code: "" });
+            setCodeSend({ viewCodeInput: true, code: "" })
             setErrorNumCelular(null)
-
         } else {
             setErrorNumCelular('Indique un numero válido')
         }
@@ -125,16 +136,31 @@ export default function Login() {
         setPassword(e.nativeEvent.text);
     };
 
-    const abrirModalCelular = () => {
+    const abrirModalCelular = async () => {
         dispatchCelularError({ type: null })
+
         setErrorNumCelular(null)
-        setNumero(null)
-        setStateModalCelular(true)
+
+
+        if (numero) {
+            setStateModalCelular(true)
+            setTimeout(() => {
+                sendMessage()
+            }, 10)
+        } else {
+            setNumero(null, setStateModalCelular(true))
+        }
+        //setStateModalCelular(true)
     }
 
     const abrirModalAFIP = () => {
         setStateModalAfip(true)
     }
+
+    const abrirModalANSES = () => {
+        setStateModalAnses(true)
+    }
+
 
 
     return (
@@ -184,8 +210,9 @@ export default function Login() {
 
                 <View style={styles.boxSocial}>
                     <Button buttonStyle={styles.btnLoginPhone} title="Iniciar con teléfono" onPress={abrirModalCelular} />
-                    <SocialIcon onPress={popupGoogle} title={"Iniciar sesión con Google"} button={true} type={"google"} />
+
                     <Button buttonStyle={styles.btnLoginAFIP} title="Iniciar con AFIP" onPress={abrirModalAFIP} />
+                    <Button buttonStyle={styles.btnLoginANSES} title="Iniciar con ANSES" onPress={abrirModalANSES} />
                 </View>
             </Card>
 
@@ -195,7 +222,7 @@ export default function Login() {
                         {!codeSend.viewCodeInput ?
                             <View>
                                 <Text style={{ fontWeight: '700' }}>Celular</Text>
-                                <Input style={styles.inputFormModal} placeholder="Celular" onChange={(e) => { setNumero(e.nativeEvent.text) }} />
+                                <Input style={styles.inputFormModal} placeholder="Celular" value={numero} onChange={(e) => { setNumero(e.nativeEvent.text) }} />
                                 <View style={styles.iconRow}>
                                     <Icon style={styles.styleIcon} name="information" type="material-community" color={estilosVar.naranjaBitter} />
                                     <Text style={styles.textInfo}>Código de área sin "0" + Teléfono sin "15"</Text>
@@ -211,7 +238,9 @@ export default function Login() {
                             </View>
                             :
                             <View>
-                                <Text style={{ fontWeight: '700' }}>Ingrese el codigo enviado a su celular</Text>
+                                <Text style={{ fontWeight: '700' }}>Ingrese el codigo enviado a su celular {numero} </Text>
+
+
                                 <Input style={styles.inputFormModal} placeholder="Codigo" onChange={(e) => { setCodeSend({ viewCodeInput: true, code: e.nativeEvent.text }) }} rightIcon={
                                     <Icon name='cellphone-message' type='material-community' size={24} color='gray' />
                                 } />
@@ -235,9 +264,12 @@ export default function Login() {
             <Modal visible={stateModalAfip} animationType="slide" visible={stateModalAfip} titulo="Iniciar sesión con AFIP">
                 <Icon type="material-community" name="close" color="#000" onPress={() => { setStateModalAfip(false) }} />
                 <WebViewAfip></WebViewAfip>
-
             </Modal>
 
+            <Modal visible={stateModalAnses} animationType="slide" visible={stateModalAnses} titulo="Iniciar sesión con Anses">
+                <Icon type="material-community" name="close" color="#000" onPress={() => { setStateModalAnses(false) }} />
+                <WebViewAnses></WebViewAnses>
+            </Modal>
 
             {loading && <Loading isLoading={loading} text={"Espere un momento..."} />}
         </ScrollView>
@@ -290,7 +322,14 @@ const styles = StyleSheet.create({
         marginLeft: 5,
     },
     btnLoginAFIP: {
-        backgroundColor: "#44ffaa",
+        backgroundColor: "#1ed760",
+        borderRadius: 25,
+        height: 52,
+        marginRight: 5,
+        marginLeft: 5,
+    },
+    btnLoginANSES: {
+        backgroundColor: "#38a9ff",
         borderRadius: 25,
         height: 52,
         marginRight: 5,

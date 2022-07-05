@@ -64,7 +64,8 @@ export const useUsrCiudadanoFirestore = () => {
                 resultado = {
                     email: ciudadanoInfo.email,
                     token: auth.currentUser.stsTokenManager.accessToken,
-                    usuarioInfo: usuarioInfo
+                    usuarioInfo: usuarioInfo,
+                    typeLogin: 'firebase'
                 }
             }
 

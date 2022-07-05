@@ -7,7 +7,7 @@ import { useFirestore } from "../../customhooks/useFirestore";
 import constantes from "../../utils/constantes";
 import { useNavigation } from "@react-navigation/native";
 
-export default function WebViewAfip() {
+export default function WebViewAnses() {
     const { setCiudadanoFirestore } = useUsrCiudadanoFirestore()
     const { authContext } = useContext(AuthContext)
     const { setDocumentNoState } = useFirestore()
@@ -19,7 +19,7 @@ export default function WebViewAfip() {
         let datos = JSON.parse(data.nativeEvent.data)
         console.log('dato', datos)
 
-        if (datos.tipo == 'loginafip') {
+        if (datos.tipo == 'loginanses') {
             let usuario = datos.usuario
 
             const dataCiudadano = {
@@ -42,9 +42,9 @@ export default function WebViewAfip() {
 
             const loginPayload = {
                 email: usuario.email_activa,
-                token: usuario.unique_id_loginAfip,
+                token: usuario.OIDC_CLAIM_nonce,
                 usuarioInfo: dataCiudadano,
-                typeLogin: 'afip'
+                typeLogin: 'anses'
             }
 
             authContext.dispatchManual('LOGIN', loginPayload)
@@ -53,6 +53,7 @@ export default function WebViewAfip() {
         }
 
     }
+
     const webviewRef = useRef();
 
     function sendDataToWebView() {
@@ -60,16 +61,15 @@ export default function WebViewAfip() {
     }
 
     const runFirst = `
-        window.sendDataToReactNativeApp = async () => {
-            if(window.location.pathname == '/comercios'){
-                //window.ReactNativeWebView.postMessage('/comercios');
-                window.location.href = '/afiplogueadoparanative';
-            }            
+       window.sendDataToReactNativeApp = async () => {
+            if(window.location.pathname == '/' && window.location.host == 'activa.gualeguaychu.gov.ar'){
+                //window.ReactNativeWebView.postMessage('/');
+                window.location.href = '/anseslogueadoparanative';
+            }
         };
+
         sendDataToReactNativeApp(); 
-        /*setTimeout(function() { 
-            sendDataToReactNativeApp(); 
-        }, 100);*/
+
         true; // note: this is required, or you'll sometimes get silent failures
     `;
 
@@ -86,7 +86,7 @@ export default function WebViewAfip() {
                 injectedJavaScript={runFirst}
                 onMessage={onMessage}
 
-                source={{ uri: constantes.urls.loginAfip }}
+                source={{ uri: constantes.urls.loginAnses }}
             />
         </>
     )

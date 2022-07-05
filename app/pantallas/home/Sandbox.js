@@ -7,12 +7,10 @@ import Loading from "../../componentes/Loading"
 import { useFirestore } from "../../customhooks/useFirestore"
 import { where } from "@firebase/firestore"
 import { useUsrCiudadanoFirestore } from "../../customhooks/useUsrCiudadanoFirestore"
-import { useNavigation } from "@react-navigation/native";
 
-export default function Home() {
+export default function Sandbox() {
     const [data, setData] = useState(null)
     const [pedir, setPedir] = useState(0)
-    const navigation = useNavigation();
     //const [usuariosInfo, setUsuariosInfo] = useState([])
     const { data: dataFs, error: errorFs, loading: loadingFs, getDataColl, getDataDoc } = useFirestore()
     const { data: resSet, error: errorSet, loading: loadingSet, setDocument, deleteDocument } = useFirestore()
@@ -48,22 +46,10 @@ export default function Home() {
         }
     }, [pedir])
 
-
-
-    /*React.useEffect(async () => {
-        //const algo = await authContext.postAxios('/juegopreguntas/consultas/obtenerCategorias', { algo: 'eeea' })
-        //const algo = await axiosInstance.post('/juegopreguntas/consultas/obtenerCategorias', { algo: 'qwerty' })
-        
-        if (algo) {
-            console.log(algo)
-        }
-    
-    }, [pedir])*/
-
     return (
         <ScrollView>
+            <Text>SANDBOX</Text>
             <Text>Context..! {loginStateJson}</Text>
-            <Text onPress={() => navigation.navigate("Sandbox")} > [Ir al Sandbox] </Text>
             <Text>Pedir: {pedir}</Text>
             <Text>Loading: {(loading) ? 1 : 0}</Text>
             {loading ? (
