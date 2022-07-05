@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View } from "react-native";
 import React, { useRef, useState, useContext } from "react";
-import { getAuth, PhoneAuthProvider, signInWithCredential } from "firebase/auth";
+import { getAuth, PhoneAuthProvider, signInWithCredential,deleteUser } from "firebase/auth";
 import { Icon, Button, Input } from "react-native-elements";
 import { getApp } from "../../utils/firebase-config";
 import TextInputFmk from "../../componentes/TextInputFmk";
@@ -10,7 +10,7 @@ import * as Yup from 'yup'
 import { Formik } from 'formik'
 import moment from 'moment';
 import estilosVar from "../../utils/estilos";
-import { expRegulares, cuilValidator } from "../../utils/validaciones";
+import { expRegulares, cuilValidator,dateValidator } from "../../utils/validaciones";
 import ModalComp from "../../componentes/ModalComp";
 import { AuthContext } from "../../contexts/AuthContext";
 
@@ -28,6 +28,7 @@ const RegistroGoogle = (props) => {
   const recaptchaVerifier = useRef(null);
   const [idVerificacion, setIdVerificacion] = useState(null)
   const { authContext, loginState } = useContext(AuthContext);
+  const navigation = useNavigation()
 
   const Inputs = {
     dni: useRef(null),
@@ -51,17 +52,19 @@ const RegistroGoogle = (props) => {
 
   const sEsRequerido = "Es Requerido";
   const registroValidationSchema = Yup.object({
-    dni: Yup.number().typeError("Ingrese solo números").required("Es Requerido").test("dni_valido", "El DNI no es válido", (e => expRegulares.dni.test(e))),
-    cuitcuil: Yup.number().typeError("Ingrese solo números").required("Es Requerido").test("cuil_valido", "El CUIL no es válido", (e => 0 !== e && cuilValidator(e.toString()))),
-    celular: Yup.number().typeError("Ingrese solo números").required("Es Requerido").test("celular", "Ingrese un celular correcto.", (e => 0 !== e && expRegulares.cel.test(e.toString()))),
-    fechaNacimiento: Yup.date().typeError("").required(sEsRequerido).max(new Date, "Verifica si es menor a la fecha actual")
+    dni: Yup.number().typeError("Ingrese solo números").required("Es Requerido").test("dni_valido", "El DNI no es válido", (val) => expRegulares.dni.test(val)),
+    cuitcuil: Yup.number().typeError('Ingrese solo números').required(sEsRequerido).test("cuil_valido", "El CUIL no es válido", (val) => (val !== undefined) && cuilValidator(val.toString())),
+    celular: Yup.number().typeError("Ingrese solo números").required("Es Requerido").test("celular", "Ingrese un celular correcto.", (val) => (val !== undefined) && expRegulares.cel.test(val.toString())),
+    fechaNacimiento: Yup.date().required(sEsRequerido).test("Fecha de nacimiento", 'Tiene que ser anterior a la actual', (val) => dateValidator(val)),
   });
 
   const codigoVerificacionCelular = async () => {
     const credential = PhoneAuthProvider.credential(idVerificacion, codigo);
     await signInWithCredential(auth, credential).then((res) => {
       if (!res._tokenResponse.isNewUser) {
-        setErrorExistInFirebase({ message: "Ya una cuenta asociada a este numero", errorShow: true })
+        deleteUser(userProvider).then((res) => {
+          navigation.navigate("Login")
+        }) 
       } else {
         // Es un usuario nuevo
         authContext.dispatchManual('LOGIN', { token: auth.currentUser.accessToken })
@@ -99,7 +102,7 @@ const RegistroGoogle = (props) => {
             <TextInputFmk
               name="dni"
               placeholder="Número de documento"
-              slabel="Número de documento xx"
+              slabel="Número de documento"
               onChangeText={handleChange("dni")}
               onBlur={handleBlur("dni")}
               value={values.dni}

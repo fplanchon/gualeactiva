@@ -8,7 +8,8 @@ const estilosVar = {
     beige: '#F2F3D9',
     azulSuave: '#0094C6',
     naranjaBitter: '#FF755D',
-    greenBlue: '#2364AA'
+    greenBlue: '#2364AA',
+    violetaOscuro: "#3F4257"
 }
 
 export default estilosVar

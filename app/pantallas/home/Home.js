@@ -1,132 +1,62 @@
 import React, { useState } from "react"
-import { View, Text, Button, ScrollView } from "react-native"
+import { View, FlatList, Button, ScrollView, StyleSheet, Dimensions } from "react-native"
+import { Image } from "react-native-elements"
 import { AuthContext } from "../../contexts/AuthContext"
-//import axiosInstance from "../../utils/axiosInstance"
-import useAxios from "../../customhooks/useAxios"
-import Loading from "../../componentes/Loading"
-import { useFirestore } from "../../customhooks/useFirestore"
-import { where } from "@firebase/firestore"
-import { useUsrCiudadanoFirestore } from "../../customhooks/useUsrCiudadanoFirestore"
+
 import { useNavigation } from "@react-navigation/native";
+import ButtonHome from "../../componentes/home/ButtonHome"
+import stylesGral from "../../utils/StyleSheetGeneral"
+import estilosVar from "../../utils/estilos"
+import { useNavigation } from "@react-navigation/native"
+
 
 export default function Home() {
-    const [data, setData] = useState(null)
-    const [pedir, setPedir] = useState(0)
-    const navigation = useNavigation();
-    //const [usuariosInfo, setUsuariosInfo] = useState([])
-    const { data: dataFs, error: errorFs, loading: loadingFs, getDataColl, getDataDoc } = useFirestore()
-    const { data: resSet, error: errorSet, loading: loadingSet, setDocument, deleteDocument } = useFirestore()
-    // const { data: dataFs2, error: errorFs2, loading: loadingFs2, getDataDoc } = useFirestore()
-
-    const { dataUsr, errorUsr, loadingUsr, getUsuario } = useUsrCiudadanoFirestore()
-
-    const { authContext, loginState } = React.useContext(AuthContext)
-    const loginStateJson = JSON.stringify(loginState)
+    const navigation = useNavigation()
 
 
-    const { res, err, loading, refetch } = useAxios({
-        method: 'post',
-        url: '/juegopreguntas/consultas/obtenerCategorias',
-        data: {
-            userId: 1,
-            id: 19392,
-            title: 'title',
-            body: 'Sample text',
-        },
-    })
+    const buttons = [
+        { id: 1, icon: "file", title: "Trámites" },
+        { id: 2, icon: "calendar", title: "Turnos" },
+        { id: 3, icon: "file-document", title: "Tasas (boletas)", onPress: () => navigation.navigate("tasasHome") },
+        { id: 4, icon: "ticket", title: "Multas" },
+    ]
 
-    React.useEffect(async () => {
-        if (pedir > 0) {
-            refetch()
-
-        }
-
-        if (res !== null) {
-            setData(res.data)
-            //console.log('home_useeffect')
-            //console.log(res.data)
-        }
-    }, [pedir])
-
-
-
-    /*React.useEffect(async () => {
-        //const algo = await authContext.postAxios('/juegopreguntas/consultas/obtenerCategorias', { algo: 'eeea' })
-        //const algo = await axiosInstance.post('/juegopreguntas/consultas/obtenerCategorias', { algo: 'qwerty' })
-        
-        if (algo) {
-            console.log(algo)
-        }
-    
-    }, [pedir])*/
+    const WIDTH = Dimensions.get("window").width;
+    const column = 2
+    const buttonWidth = WIDTH / column;
 
     return (
-        <ScrollView>
-            <Text>Context..! {loginStateJson}</Text>
-            <Text onPress={() => navigation.navigate("Sandbox")} > [Ir al Sandbox] </Text>
-            <Text>Pedir: {pedir}</Text>
-            <Text>Loading: {(loading) ? 1 : 0}</Text>
-            {loading ? (
-                <Text>loading...</Text>
-            ) : (
+        <View>
+            <View style={styles.encabezadoLogo}>
+                <Image style={{ width: "100%", height: 100, marginTop: 70 }} resizeMode="contain" source={require("../../../assets/logo-gualeactiva.png")} />
+            </View>
+            <View style={styles.viewStyle}>
+                <FlatList
+                    data={buttons}
+                    renderItem={({ item }) => {
+                        return <ButtonHome key={item.id} widthBtn={buttonWidth} icon={item.icon} title={item.title} onPress={item.onPress} />
+                    }}
+                    keyExtractor={(item) => item.id}
+                    numColumns={column}
+                />
+            </View>
+        </View>
 
-                err ? (
-
-                    <Text>Error: {JSON.stringify(err)}</Text>
-
-                ) :
-                    (<Text>{JSON.stringify(data)}</Text>)
-
-            )}
-
-            <Text>****USUARIOS****</Text>
-            {loadingFs ? (
-                <Text>loading Firestore...</Text>
-            ) : (
-                errorFs ? (
-                    <Text>Error Firestore: {errorFs}</Text>
-                ) :
-                    (<Text>{JSON.stringify(dataFs)}</Text>)
-            )}
-            <Text>****/USUARIOS****</Text>
-
-            <Button title="Cerrar Sesión" onPress={() => authContext.signOut()} />
-            <Button title="Consultar" onPress={() => { setPedir(pedir + 1) }} />
-            <Button title="Buscar Usrs Firebase" color="#66f4fa" onPress={() => getDataColl('usuariosInfo')} />
-            <Button title="Buscar un Usuario" color="#4fa" onPress={() => getDataDoc('usuariosInfo', 'zDB2P3ZXqkdSJBjZSs07DHLtCqs1')} />
-
-            <Text>****SETTER****</Text>
-            {loadingSet ? (
-                <Text>loading Firestore...</Text>
-            ) : (
-                errorSet ? (
-                    <Text>Error Firestore: {errorSet}</Text>
-                ) :
-                    (<Text>{JSON.stringify(resSet)}</Text>)
-            )}
-            <Text>****/SETTER****</Text>
-
-            <Button title="Set Usuario" color="#ff4444" onPress={() => setDocument('usuariosInfo', 'zDB2P3ZXqkdSJBjZSs07DHLtCqs1', { id_ciudadano: 999, nombres: 'aww' })} />
-            <Button title="Borrar un Usuario" color="#ff4" onPress={() => deleteDocument('usuariosInfo', 'zDB2P3ZXqkdSJBjZSs07DHLtCqs1')} />
-            {loading ? (
-                <Loading isLoading={true} text={"Consultando..."} />
-            ) : null}
-            <Button title="Buscar usuario useUsrCiudadanoFirestore" color="#442" onPress={() => getUsuario().then(() => { console.log('ok useusr') })} />
-
-            <Text>****useUsrCiudadanoFirestore****</Text>
-            {loadingUsr ? (
-                <Text>loading useUsrCiudadanoFirestore...</Text>
-            ) : (
-                errorUsr ? (
-                    <Text>Error useUsrCiudadanoFirestore: {errorUsr}</Text>
-                ) :
-                    (<Text>{JSON.stringify(dataUsr)}</Text>)
-            )}
-            <Text>****/useUsrCiudadanoFirestore****</Text>
-
-
-
-        </ScrollView>
     )
 
 }
+
+const styles = StyleSheet.create({
+    viewStyle: {
+        display: "flex",
+        flexDirection: "row",
+        flexWrap: "wrap",
+        alignItems: 'flex-start',
+        height: Dimensions.get("window").height
+    },
+    encabezadoLogo: {
+        backgroundColor: estilosVar.violetaOscuro,
+        width: "100%",
+        height: 228
+    }
+})
