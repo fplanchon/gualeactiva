@@ -278,8 +278,8 @@ export default function App({ navigation }) {
                         })}
                     >
 
-                    <Tab.Screen name="home-stack" component={HomeStack} options={{ title: "Inicio", headerShown: false }} />
-                    <Tab.Screen name="perfil-stack" component={PerfilStack} options={{ title: "Mi perfil", headerShown: false }} />
+                    <Tab.Screen name="home-stack" component={HomeStack} options={{ title: "Inicio", headerShown: false, unmountOnBlur: true, }} />
+		      <Tab.Screen name="perfil-stack" component={PerfilStack} options={{ title: "Mi perfil", headerShown: false, unmountOnBlur: true }} />
                     {/* <Tab.Screen name="menu-stack" component={MenuStack} options={{ title: "Menu", headerShown: false }} /> */}
 
                     </Tab.Navigator>

@@ -1,6 +1,7 @@
-import React,{useEffect,useRef,useState, useContext, useReducer} from "react"
+import React,{useEffect,useRef,useState, useContext} from "react"
 import { View,Text, StyleSheet,ScrollView, Button, TextInput } from "react-native";
 import { Avatar,Icon } from "react-native-elements"
+import { useNavigation } from "@react-navigation/native";
 import ButtonList from "../../componentes/home/ButtonList"
 import estilosVar from "../../utils/estilos";
 import axios from 'axios';
@@ -11,15 +12,16 @@ import { cuilValidator,dateValidator, expRegulares } from "../../utils/validacio
 import stylesGral from "../../utils/StyleSheetGeneral";
 import ModalComp from "../../componentes/ModalComp";
 import Loading from "../../componentes/Loading";
-import constantes from "../../utils/constantes";
 import { AuthContext } from "../../contexts/AuthContext";
 import { useUsrCiudadanoFirestore } from "../../customhooks/useUsrCiudadanoFirestore";
 import PermisosUsuario from "../../utils/PermisosUsuario";
 import * as ImagePicker from 'expo-image-picker';
+import constantes from "../../utils/constantes";
 
 export default function Perfil() {
     const { authContext } = useContext(AuthContext);
     const auth = getAuth();
+    const navigation = useNavigation();
     const {recuperarDatosDeSesion, updateProfileFirestore, uploadImageStorageAndSync, getURIToBlob} = useUsrCiudadanoFirestore();
 
     const [showPass, setShowPass] = useState({inputContrasena: false, inputRepetirContrasena: false});
@@ -67,7 +69,7 @@ export default function Perfil() {
         const usuarioActual = auth.currentUser;
         updateEmail(usuarioActual, values.nuevoCorreo).then(() => {
             sendEmailVerification(usuarioActual).then(async() => {
-                const url = 'http://pp-apiseg.gchu.org/' + 'actualizarEmailCiudadano';
+                const url = constantes.API + 'actualizarEmailCiudadano';
                 const datos = { "dni": values.dni, "correoNuevo": values.nuevoCorreo };
                 const response = await axios.post(url, datos);
                 if(response.data.success){
@@ -275,7 +277,7 @@ export default function Perfil() {
             <View>
                 {!initialValues.email.includes("gmail.com") && <ButtonList icon="at" typeIcon="material-community" title="Cambiar correo" onPress={ () => setVisibleModal({visible: true, tipo: "correo electrónico"}) }/>}
                 <ButtonList icon="lock" title="Cambiar contraseña" typeIcon="material-community" onPress={ () => setVisibleModal({visible: true, tipo: "contraseña"}) }/>
-                <ButtonList icon="bell-slash" typeIcon="font-awesome" title="Notificaciones" onPress={ () => console.log("Ajustes notificaciones")}/>
+                <ButtonList icon="bell-slash" typeIcon="font-awesome" title="Notificaciones" onPress={ () => navigation.navigate("ajustesnotificaciones") }/>
                 <ButtonList title="Cerrar sesión" color={estilosVar.rojoCrayola} onPress={() => authContext.signOut()}/>
             </View>
             { visibleModal.visible && 

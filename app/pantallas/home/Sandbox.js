@@ -1,12 +1,14 @@
-import React, { useState } from "react"
+import React, { useState, useRef } from "react"
 import { View, Text, Button, ScrollView } from "react-native"
 import { AuthContext } from "../../contexts/AuthContext"
 //import axiosInstance from "../../utils/axiosInstance"
 import useAxios from "../../customhooks/useAxios"
 import Loading from "../../componentes/Loading"
 import { useFirestore } from "../../customhooks/useFirestore"
-import { where } from "@firebase/firestore"
 import { useUsrCiudadanoFirestore } from "../../customhooks/useUsrCiudadanoFirestore"
+import constantes from "../../utils/constantes"
+import axios from "axios"
+import * as Notifications from 'expo-notifications';
 
 export default function Sandbox() {
     const [data, setData] = useState(null)
@@ -14,13 +16,15 @@ export default function Sandbox() {
     //const [usuariosInfo, setUsuariosInfo] = useState([])
     const { data: dataFs, error: errorFs, loading: loadingFs, getDataColl, getDataDoc } = useFirestore()
     const { data: resSet, error: errorSet, loading: loadingSet, setDocument, deleteDocument } = useFirestore()
-    // const { data: dataFs2, error: errorFs2, loading: loadingFs2, getDataDoc } = useFirestore()
+    const {recuperarDatosDeSesion} = useUsrCiudadanoFirestore();
 
     const { dataUsr, errorUsr, loadingUsr, getUsuario } = useUsrCiudadanoFirestore()
 
     const { authContext, loginState } = React.useContext(AuthContext)
     const loginStateJson = JSON.stringify(loginState)
 
+    const notificationListener = useRef();
+    const responseListener = useRef();
 
     const { res, err, loading, refetch } = useAxios({
         method: 'post',
@@ -33,18 +37,40 @@ export default function Sandbox() {
         },
     })
 
+    const enviarNotificacion = async () => {
+        const url = constantes.API + 'notificarActiva';
+        const {usuarioInfo} = await recuperarDatosDeSesion();
+        const datos = {titulo: "Notificacion de prueba",contenido:"Cuerpo notificacion",link:"Sandbox",modulo:"RIM",id_ciudadano: usuarioInfo.id_ciudadano };
+        const response = await axios.post(url, datos);
+        //console.log("RTA:", response)
+    }
+
     React.useEffect(async () => {
         if (pedir > 0) {
             refetch()
-
         }
+
+        notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
+            console.log(notification);
+        });
+        
+        responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
+            console.log(response);
+        });
+        
+            
 
         if (res !== null) {
             setData(res.data)
             //console.log('home_useeffect')
             //console.log(res.data)
         }
-    }, [pedir])
+        
+        return () => {
+            Notifications.removeNotificationSubscription(notificationListener.current);
+            Notifications.removeNotificationSubscription(responseListener.current);
+        }
+    }, [pedir]);
 
     return (
         <ScrollView>
@@ -98,6 +124,7 @@ export default function Sandbox() {
                 <Loading isLoading={true} text={"Consultando..."} />
             ) : null}
             <Button title="Buscar usuario useUsrCiudadanoFirestore" color="#442" onPress={() => getUsuario().then(() => { console.log('ok useusr') })} />
+            <Button title="Enviar Notificación" color="#e26f48" onPress={() => enviarNotificacion()} />
 
             <Text>****useUsrCiudadanoFirestore****</Text>
             {loadingUsr ? (

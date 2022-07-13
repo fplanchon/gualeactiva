@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View, TouchableOpacity } from "react-native";
 import React from "react";
 import { Button } from "react-native-elements";
 
@@ -14,7 +14,7 @@ const ButtonHome = (props) => {
 
 	return (
 		<View>
-			<Button title={title} containerStyle={{ width: widthBtn,	height: 119	}} buttonStyle={styles.buttonStyle} titleStyle={styles.titleBtn} icon={iconGeneral} iconContainerStyle={styles.iconContainer} onPress={onPress}/>
+			<Button TouchableComponent={TouchableOpacity} title={title} containerStyle={{ width: widthBtn,	height: 119	}} buttonStyle={styles.buttonStyle} titleStyle={styles.titleBtn} icon={iconGeneral} iconContainerStyle={styles.iconContainer} onPress={onPress}/>
 		</View>
 	);
 };

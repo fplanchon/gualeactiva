@@ -26,21 +26,23 @@ export default function Home() {
     const buttonWidth = WIDTH / column;
 
     return (
-        <View>
-            <View style={styles.encabezadoLogo}>
-                <Image style={{ width: "100%", height: 100, marginTop: 70 }} resizeMode="contain" source={require("../../../assets/logo-gualeactiva.png")} />
-            </View>
-            <View style={styles.viewStyle}>
-                <FlatList
-                    data={buttons}
-                    renderItem={({ item }) => {
-                        return <ButtonHome key={item.id} widthBtn={buttonWidth} icon={item.icon} title={item.title} onPress={item.onPress} />
-                    }}
-                    keyExtractor={(item) => item.id}
-                    numColumns={column}
-                />
-            </View>
-        </View>
+        <ScrollView>
+            <>
+                <View style={styles.encabezadoLogo}>
+                    <Image style={{ width: "100%", height: 100, marginTop: 70 }} resizeMode="contain" source={require("../../../assets/logo-gualeactiva.png")} />
+                </View>
+                <View style={styles.viewStyle}>
+                    <FlatList
+                        data={buttons}
+                        renderItem={({ item }) => {
+                            return <ButtonHome key={item.id} widthBtn={buttonWidth} icon={item.icon} title={item.title} onPress={item.onPress} />
+                        }}
+                        keyExtractor={(item) => item.id}
+                        numColumns={column}
+                    />
+                </View>
+            </>
+        </ScrollView>
 
     )
 
