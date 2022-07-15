@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from 'react-native'
+import { StyleSheet, Text, View,TouchableOpacity } from 'react-native'
 import React from 'react'
 import { Button } from 'react-native-elements';
 
@@ -17,6 +17,7 @@ const ButtonList = (props) => {
   return (
     <View style={styles.button}>
       <Button 
+        TouchableComponent={TouchableOpacity}
         title={title.trim()} 
         titleStyle={{...styles.titleBtn, color: btnColor === undefined ? "#000" : "#FFF"}} 
         buttonStyle={{...styles.buttonStyle, 
