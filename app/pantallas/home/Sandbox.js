@@ -46,6 +46,9 @@ export default function Sandbox() {
         }
     }, [pedir])
 
+
+
+
     return (
         <ScrollView>
             <Text>SANDBOX</Text>

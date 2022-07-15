@@ -25,7 +25,8 @@ export default function WebViewAnses() {
             const dataCiudadano = {
                 'id_ciudadano': usuario.id_ciudadano,
                 'email': usuario.email_activa,
-                'nombres': usuario.apellido + ' ' + usuario.nombre_razon_social,
+                'nombres': usuario.nombre_razon_social,
+                'apellido': usuario.apellido,
                 'cuitcuil': usuario.cuitcuil
             }
 

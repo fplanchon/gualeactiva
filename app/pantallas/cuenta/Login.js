@@ -50,7 +50,7 @@ export default function Login() {
 
     useEffect(async () => {
         let numeroCelular = await AsyncStorage.getItem('numeroCelular');
-        console.log('numeroCelular', numeroCelular)
+        //console.log('numeroCelular', numeroCelular)
         setNumero(numeroCelular)
     }, [])
 
@@ -168,7 +168,7 @@ export default function Login() {
             <Card>
                 <Card.Title>
                     <Text style={styles.tituloCard}>
-                        Indique Email o DNI y Contraseña
+                        Indique Email o DNI y Contraseña x
                     </Text>
                 </Card.Title>
                 <Card.Image style={styles.logo} source={require("../../../assets/logo-color.png")} />

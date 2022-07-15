@@ -22,6 +22,29 @@ const stylesGral = StyleSheet.create({
         color: estilosVar.rojoCrayola,
         marginTop: 10,
         fontSize: 12
+    },
+    tituloH1: {
+        fontSize: 25,
+    },
+    boxSimple: {
+        borderWidth: 1,
+        borderColor: estilosVar.azulSuave,
+        padding: 20,
+        marginVertical: 8,
+        marginHorizontal: 16,
+    },
+    buttonStyleCancelar: {
+        backgroundColor: estilosVar.rojoCrayola,
+    },
+    buttonStyleOutlineCancelar: {
+        borderWidth: 2,
+        borderColor: estilosVar.rojoCrayola,
+    },
+    titleStyleCancelar: {
+        color: estilosVar.rojoCrayola,
+    },
+    iconoGris: {
+        color: estilosVar.colorIconoInactivo
     }
 })
 

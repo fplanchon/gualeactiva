@@ -2,7 +2,6 @@ import React, { useState } from "react"
 import { View, FlatList, Button, ScrollView, StyleSheet, Dimensions } from "react-native"
 import { Image } from "react-native-elements"
 import { AuthContext } from "../../contexts/AuthContext"
-
 import { useNavigation } from "@react-navigation/native";
 import ButtonHome from "../../componentes/home/ButtonHome"
 import stylesGral from "../../utils/StyleSheetGeneral"
@@ -15,7 +14,7 @@ export default function Home() {
 
     const buttons = [
         { id: 1, icon: "file", title: "Trámites" },
-        { id: 2, icon: "calendar", title: "Turnos" },
+        { id: 2, icon: "calendar", title: "Turnos", onPress: () => navigation.navigate("turnosHome") },
         { id: 3, icon: "file-document", title: "Tasas (boletas)", onPress: () => navigation.navigate("tasasHome") },
         { id: 4, icon: "ticket", title: "Multas" },
         { id: 5, icon: "code-brackets", title: "Pruebas", onPress: () => navigation.navigate("Sandbox") },

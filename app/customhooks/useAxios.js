@@ -70,6 +70,7 @@ axiosInstance.interceptors.response.use(
 const useAxios = (configParams) => {
 
     const [res, setRes] = useState('');
+    const [datos, setDatos] = useState('');
     const [err, setErr] = useState('');
     const [loading, setLoading] = useState(false);
 
@@ -87,12 +88,15 @@ const useAxios = (configParams) => {
     const refetch = async () => {
         setLoading(true);
         await axiosInstance.request(configParams)
-            .then(res => setRes(res))
+            .then((res) => {
+                setRes(res)
+                setDatos(res.data.data)
+            })
             .catch(err => setErr(err))
             .finally(() => setLoading(false))
     }
 
-    return { res, err, loading, refetch };
+    return { datos, res, err, loading, refetch };
 }
 
 export default useAxios;
