@@ -57,7 +57,7 @@ export const useUsrCiudadanoFirestore = () => {
                 console.log('usuarioInfo', usuarioInfo)
 
                 ciudadanoInfo = await returnGetDataDoc(colCiudadanos, usuarioInfo.id_ciudadano)
-                console.log('ciudadanoInfo', ciudadanoInfo)
+                //console.log('ciudadanoInfo', ciudadanoInfo)
 
                 usuarioInfo = { ...usuarioInfo, ...ciudadanoInfo }
 
@@ -158,7 +158,7 @@ export const useUsrCiudadanoFirestore = () => {
 
     const updateProfileFirestore = async (datos, PimUsuario) => {
         await setDocument(colCiudadanos, PimUsuario, datos).then(res => {
-            console.log('Respuesta', res)
+            console.log('Respuesta updateProfileFirestore setDocument', res)
         }).catch((error) => {
             console.log('error updateProfileFirestore', error);
             throw error
@@ -183,7 +183,7 @@ export const useUsrCiudadanoFirestore = () => {
             // Referencia en firestore en el doc del usuario
             await setDocument(colCiudadanos, PimUsuario, { photoUrl: snapshot.metadata.fullPath })
                 .then(res => {
-                    console.log('Respuesta', res)
+                    console.log('Respuesta uploadImageStorageAndSync uploadBytes setDocument', res)
                 }).catch((error) => {
                     console.log('error setDocument', error);
                     throw error

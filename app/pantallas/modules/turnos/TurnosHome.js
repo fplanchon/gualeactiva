@@ -14,13 +14,14 @@ const TurnosHome = () => {
     const { authContext, loginState } = React.useContext(AuthContext)
     const [expanded, setExpanded] = useState([])
     const [turnerasData, setTurnerasData] = useState([{}])
-    const [buscarTurneraTxt, setBuscarTurneraTxt] = useState({})
+    const [buscarTurneraTxt, setBuscarTurneraTxt] = useState('')
+    const [buscarTurneraFiltro, setBuscarTurneraFiltro] = useState({ tramite: '' })
     const id_ciudadano = loginState.usuarioInfoFs.id_ciudadano
 
-    const { datos: Turneras, refetch: buscarTurneras } = useAxios({
+    const { datos: Turneras, err: errorTurneras, refetch: buscarTurneras } = useAxios({
         method: 'post',
         url: '/turnosweb/consultas/buscarTurnosPorTramiteNative',
-        data: buscarTurneraTxt
+        data: buscarTurneraFiltro
     })
 
 
@@ -32,13 +33,18 @@ const TurnosHome = () => {
 
 
     const handleBuscaTurnera = (e) => {
-        setBuscarTurneraTxt({ tramite: e.nativeEvent.text })
+        setBuscarTurneraTxt(e.nativeEvent.text)
     }
 
     useEffect(() => {
         console.log('useEffect buscarTurneraTxt')
-        buscarTurneras()
+        setBuscarTurneraFiltro({ tramite: buscarTurneraTxt })
     }, [buscarTurneraTxt])
+
+    useEffect(() => {
+        console.log('useEffect buscarTurneraFiltro')
+        buscarTurneras()
+    }, [buscarTurneraFiltro])
 
     const proximoTurno = ({ item }) => {
         return (
@@ -66,7 +72,6 @@ const TurnosHome = () => {
 
     return (
         <ScrollView>
-
             <Card>
                 <Card.Title>
                     <Text style={stylesGral.tituloH1}>Proximos Turnos</Text>
@@ -75,7 +80,7 @@ const TurnosHome = () => {
                 {cargandoMisTurnos ?
                     <LinearProgress color="primary" />
                     :
-                    misTurnos.turnosProximos ?
+                    misTurnos ?
                         <FlatList
                             data={misTurnos.turnosProximos}
                             renderItem={proximoTurno}
@@ -101,7 +106,9 @@ const TurnosHome = () => {
                     <Icon
                         type="material"
                         name="close"
-                        onPress={() => (setBuscarTurneraTxt(''))}
+                        onPress={() => (
+                            setBuscarTurneraTxt('')
+                        )}
                     />
                 }
                 onChange={(e) => handleBuscaTurnera(e)}
@@ -110,6 +117,7 @@ const TurnosHome = () => {
                 <ItemAccordion Turnera={Turnera} ></ItemAccordion>
             )) : null
             }
+
         </ScrollView >
     )
 }

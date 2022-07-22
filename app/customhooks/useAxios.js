@@ -91,6 +91,7 @@ const useAxios = (configParams) => {
             .then((res) => {
                 setRes(res)
                 setDatos(res.data.data)
+                //console.log('useAxios res.data', res.data)
             })
             .catch(err => setErr(err))
             .finally(() => setLoading(false))

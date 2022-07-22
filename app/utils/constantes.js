@@ -2,7 +2,7 @@
 import * as Device from 'expo-device';
 
 const constantes = {
-    //API: 'http://fp-apiseg.gchu.org/',
+    // API: 'http://fp-apiseg.gchu.org/',
     //API: 'https://desarrollo.gualeguaychu.gov.ar/',
     //API: Device.isDevice ? 'https://apiseg-dev.gualeguaychu.gov.ar/' : 'http://pp-apiseg.gchu.org/',
     API: 'https://apiseg-dev.gualeguaychu.gov.ar/',
