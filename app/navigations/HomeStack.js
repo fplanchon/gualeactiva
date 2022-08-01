@@ -8,8 +8,10 @@ import estilosVar from '../utils/estilos';
 import TasasHome from '../pantallas/modules/tasas/TasasHome';
 import TurnosHome from '../pantallas/modules/turnos/TurnosHome';
 import Notificaciones from '../componentes/home/Notificaciones';
+import SolicitarTurno from '../pantallas/modules/turnos/SolicitarTurno';
 import { useNavigation } from '@react-navigation/native';
 import { useUsrCiudadanoFirestore } from '../customhooks/useUsrCiudadanoFirestore';
+
 
 const Stack = createNativeStackNavigator()
 
@@ -64,7 +66,10 @@ export default function HomeStack() {
                 name="turnosHome"
                 component={TurnosHome}
                 options={{ title: "Turnos", headerRight: iconoNotificaciones }} />
-
+            <Stack.Screen
+                name="SolicitarTurno"
+                component={SolicitarTurno}
+                options={{ title: "Solicitar Turno", headerRight: iconoNotificaciones }} />
         </Stack.Navigator>
     )
 }

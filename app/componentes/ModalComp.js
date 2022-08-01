@@ -33,6 +33,7 @@ const styles = StyleSheet.create({
   tituloCard: {
     fontSize: 25,
     marginLeft: 20,
-    marginTop: 30
+    marginTop: 30,
+    textAlign: 'center'
   }
 })

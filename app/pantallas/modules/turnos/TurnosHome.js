@@ -114,7 +114,7 @@ const TurnosHome = () => {
                 onChange={(e) => handleBuscaTurnera(e)}
             />
             {Turneras ? Turneras.map((Turnera, i) => (
-                <ItemAccordion Turnera={Turnera} ></ItemAccordion>
+                <ItemAccordion key={i} Turnera={Turnera} ></ItemAccordion>
             )) : null
             }
 

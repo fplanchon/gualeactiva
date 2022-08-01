@@ -56,7 +56,7 @@ axiosInstance.interceptors.response.use(
             }*/
 
             if (err.response.status === 401 && err.response.data) {
-                //RootNavigation.navigate('Logout');
+                RootNavigation.navigate('Logout');
             }
 
         }
@@ -81,8 +81,14 @@ const useAxios = (configParams) => {
         headers: { ...configParams.headers, common: { 'user-token': loginState.userToken, 'type-login': loginState.typeLogin } }
     }
 
+    //console.log('configParams.ejecutarEnInicio', configParams.url, configParams.ejecutarEnInicio)
+    const ejecutarEnInicio = ((configParams.ejecutarEnInicio === false)) ? false : true;
+    //console.log('ejecutarEnInicio', ejecutarEnInicio)
     useEffect(() => {
-        refetch(configParams);
+        if (ejecutarEnInicio === true) {
+            //console.log('usseeffect useAxios')
+            refetch(configParams)
+        }
     }, []);
 
     const refetch = async () => {
@@ -90,14 +96,26 @@ const useAxios = (configParams) => {
         await axiosInstance.request(configParams)
             .then((res) => {
                 setRes(res)
-                setDatos(res.data.data)
+                if (res.data.success) {
+                    setDatos(res.data.data)
+                    setErr(false)
+                } else {
+                    setErr(res.data.error)
+                }
                 //console.log('useAxios res.data', res.data)
+
             })
             .catch(err => setErr(err))
             .finally(() => setLoading(false))
     }
 
-    return { datos, res, err, loading, refetch };
+    const limpiarStates = () => {
+        setDatos(null)
+        setRes(null)
+        setErr(null)
+    }
+
+    return { datos, res, err, loading, refetch, setDatos, setRes, setErr, limpiarStates };
 }
 
 export default useAxios;

@@ -1,10 +1,16 @@
 import React, { useState } from "react"
 import { StyleSheet, Text, View, Icon, ScrollView } from 'react-native'
 import { ListItem } from "react-native-elements"
+import { useNavigation } from "@react-navigation/native";
 
 export default function ItemAccordion(props) {
     const Turnera = props.Turnera
     const [expandido, setExpandido] = useState(false)
+    const navigation = useNavigation()
+    const irASolicitarTurno = (Tramite) => {
+        console.log('iraSolicitarturno', Tramite)
+        navigation.navigate("SolicitarTurno", { 'Tramite': Tramite })
+    }
 
     return (
         <ListItem.Accordion
@@ -22,12 +28,11 @@ export default function ItemAccordion(props) {
             }}
         >
             {Turnera['tramites'].map((Tramite, i) => (
-                <ListItem key={Tramite['id_tramite']} onPress={() => { console.log('press tramite: ' + Tramite['id_tramite']) }} bottomDivider>
-                    <ListItem.Content>
-                        <ListItem.Title>{Tramite['tramite']}</ListItem.Title>
+                <ListItem key={Tramite['id_tramite']} bottomDivider onPress={() => { irASolicitarTurno(Tramite) }}>
+                    <ListItem.Content >
+                        <ListItem.Title >{Tramite['tramite']}</ListItem.Title>
                         <ListItem.Subtitle>Oficina: {Tramite['oficina']}</ListItem.Subtitle>
                         <ListItem.Subtitle>{Tramite['observaciones']}</ListItem.Subtitle>
-
                     </ListItem.Content>
                     <ListItem.Chevron />
                 </ListItem>

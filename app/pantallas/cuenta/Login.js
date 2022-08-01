@@ -168,7 +168,7 @@ export default function Login() {
             <Card>
                 <Card.Title>
                     <Text style={styles.tituloCard}>
-                        Indique Email o DNI y Contraseña x
+                        Indique Email o DNI y Contraseña
                     </Text>
                 </Card.Title>
                 <Card.Image style={styles.logo} source={require("../../../assets/logo-color.png")} />
