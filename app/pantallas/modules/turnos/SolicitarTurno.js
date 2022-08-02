@@ -5,6 +5,7 @@ import useAxios from "../../../customhooks/useAxios";
 import estilosVar from "../../../utils/estilos";
 import ModalComp from "../../../componentes/ModalComp";
 import { AuthContext } from "../../../contexts/AuthContext";
+import { useNavigation } from "@react-navigation/native";
 
 export default function SolicitarTurno({ route }) {
     //const Turnera = props.Turno
@@ -14,9 +15,11 @@ export default function SolicitarTurno({ route }) {
     const [selectedId, setSelectedId] = useState(null);
     const [selectedHora, setSelectedHora] = useState(null);
     const [stateModalConfirmarTurno, setStateModalConfirmarTurno] = useState(false)
+    const [stateModalTurnoGuardado, setStateModalTurnoGuardado] = useState(false)
     const { authContext, loginState } = React.useContext(AuthContext)
     const loginStateJson = JSON.stringify(loginState)
     const [dataTurno, setDataTurno] = useState(null)
+    const navigation = useNavigation()
 
     const { datos: fechasDisp, err: errorFechasDisp, refetch: buscarFechasDisp } = useAxios({
         method: 'post',
@@ -101,10 +104,21 @@ export default function SolicitarTurno({ route }) {
         })
     }
 
+    useEffect(() => {
+        console.log('turnoGuardado', turnoGuardado)
+        if ((turnoGuardado != null) && (typeof turnoGuardado != 'undefined')) {
+            if ((turnoGuardado.turno != null) && (typeof turnoGuardado.turno != 'undefined')) {
+                setStateModalConfirmarTurno(false)
+                setStateModalTurnoGuardado(true)
+            }
+        }
+    }, [turnoGuardado])
 
     useEffect(() => {
         guardarTurno()
     }, [dataTurno])
+
+
 
     const Item = ({ item, onPress, backgroundColor, textColor }) => (
         <TouchableOpacity onPress={onPress} style={[styles.touchItemFecha, backgroundColor]} >
@@ -149,6 +163,14 @@ export default function SolicitarTurno({ route }) {
         )
     }
 
+    const handleConfirmarHora = () => {
+        setStateModalConfirmarTurno(true)
+    }
+
+    const handleCerrarTurno = () => {
+        navigation.navigate("turnosHome")
+    }
+
     const BottonConfirmarFecha = () => {
         const titulo = (fechaDesc !== '') ? "Confirmar fecha para " + fechaDesc : "Aún no ha seleccionado una fecha"
         return (
@@ -160,7 +182,7 @@ export default function SolicitarTurno({ route }) {
     const BottonConfirmarHora = () => {
         const titulo = (selectedHora !== null) ? "Confirmar horario para las " + selectedHora : "Aún no ha seleccionado un horario"
         return (
-            <Button style={stylesGral.buttonMargin} onPress={() => { handleConfirmarHora(selectedHora) }} title={titulo}></Button>
+            <Button style={stylesGral.buttonMargin} onPress={() => { handleConfirmarHora() }} title={titulo}></Button>
         )
     }
 
@@ -176,9 +198,14 @@ export default function SolicitarTurno({ route }) {
         )
     }
 
-    const handleConfirmarHora = (selectedHora) => {
-        setStateModalConfirmarTurno(true)
+
+    const BottonCerrarTurno = () => {
+        return (
+            <Button onPress={() => { handleCerrarTurno() }} title="Salir"></Button>
+        )
     }
+
+
 
     const Cabecera = () => {
         return (
@@ -242,7 +269,6 @@ export default function SolicitarTurno({ route }) {
                         <View style={[stylesGral.viewCard, stylesGral.elevation, stylesGral.paddigVertical10]}>
                             <Text style={styles.textItemFecha}>Fecha: {fechaDesc}</Text>
                             <Text style={styles.textItemFecha}>Hora: {selectedHora}</Text>
-                            <Text>TURNOGUARDADO: {JSON.stringify(turnoGuardado)} </Text>
                             {(errorTurnoGuardado) ?
                                 <>
                                     <Text style={stylesGral.errorText}>{errorTurnoGuardado}</Text>
@@ -254,7 +280,25 @@ export default function SolicitarTurno({ route }) {
                     </ScrollView>
                 </ModalComp>
             }
+
+            {stateModalTurnoGuardado &&
+                <ModalComp stateModal={stateModalTurnoGuardado} setModalState={setStateModalTurnoGuardado} ocultarIconClose={true} titulo="Turno confirmado!!!">
+                    <ScrollView>
+                        <Cabecera />
+                        <View style={[stylesGral.viewCard, stylesGral.elevation, stylesGral.paddigVertical10]}>
+                            <Text style={styles.textItemFecha}>Fecha: {fechaDesc}</Text>
+                            <Text style={styles.textItemFecha}>Hora: {selectedHora}</Text>
+                            <Text>Recorda asistir con la documentacion solicitada, cancela el turno si prevees que no asistiras</Text>
+                            <Text>Gracias por utilizar este servicio</Text>
+
+                        </View>
+                        <BottonCerrarTurno />
+                    </ScrollView>
+                </ModalComp>
+            }
         </ScrollView>
+
+
 
     )
 }
