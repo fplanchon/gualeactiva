@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from "react"
-import { StyleSheet, Text, View, Icon, ScrollView, Button, FlatList, TouchableOpacity } from 'react-native'
+import { StyleSheet, Text, View, ScrollView, Button, FlatList, TouchableOpacity } from 'react-native'
 import stylesGral from "../../../utils/StyleSheetGeneral";
 import useAxios from "../../../customhooks/useAxios";
 import estilosVar from "../../../utils/estilos";
 import ModalComp from "../../../componentes/ModalComp";
 import { AuthContext } from "../../../contexts/AuthContext";
 import { useNavigation } from "@react-navigation/native";
+import { Icon } from "react-native-elements";
 
 export default function SolicitarTurno({ route }) {
     //const Turnera = props.Turno
@@ -121,13 +122,13 @@ export default function SolicitarTurno({ route }) {
 
 
     const Item = ({ item, onPress, backgroundColor, textColor }) => (
-        <TouchableOpacity onPress={onPress} style={[styles.touchItemFecha, backgroundColor]} >
+        <TouchableOpacity key={item.id} onPress={onPress} style={[styles.touchItemFecha, backgroundColor]} >
             <Text style={[styles.textItemFecha, textColor]}>{item.desc}</Text>
         </TouchableOpacity >
     );
 
     const ItemHora = ({ item, onPress, backgroundColor, textColor }) => (
-        <TouchableOpacity onPress={onPress} style={[styles.touchItemFecha, backgroundColor]} >
+        <TouchableOpacity key={item.id} onPress={onPress} style={[styles.touchItemFecha, backgroundColor]} >
             <Text style={[styles.textItemFecha, textColor]}>{item}</Text>
         </TouchableOpacity >
     );
@@ -171,37 +172,61 @@ export default function SolicitarTurno({ route }) {
         navigation.navigate("turnosHome")
     }
 
-    const BottonConfirmarFecha = () => {
+    const BotonConfirmarFecha = () => {
         const titulo = (fechaDesc !== '') ? "Confirmar fecha para " + fechaDesc : "Aún no ha seleccionado una fecha"
         return (
-            <Button onPress={() => { buscarInfoFecha() }} title={titulo}></Button>
+            <View style={[stylesGral.containerBtnGrande, { height: 75 }]}>
+                <TouchableOpacity onPress={() => { buscarInfoFecha() }} style={stylesGral.btnGrande}>
+                    <Text style={[stylesGral.textoBtnGrande, { fontSize: 14 }]}>{titulo}</Text>
+                </TouchableOpacity>
+            </View >
         )
     }
 
 
-    const BottonConfirmarHora = () => {
+    const BotonConfirmarHora = () => {
         const titulo = (selectedHora !== null) ? "Confirmar horario para las " + selectedHora : "Aún no ha seleccionado un horario"
         return (
-            <Button style={stylesGral.buttonMargin} onPress={() => { handleConfirmarHora() }} title={titulo}></Button>
+            <View style={[stylesGral.containerBtnGrande, { height: 75 }]}>
+                <TouchableOpacity onPress={() => { handleConfirmarHora() }} style={stylesGral.btnGrande}>
+                    <Text style={[stylesGral.textoBtnGrande, { fontSize: 16 }]}>{titulo}</Text>
+                </TouchableOpacity>
+            </View >
         )
     }
 
-    const BottonVolerAFechas = () => {
+    const BotonVolerAFechas = () => {
+        const titulo = "Volver y cambiar la fecha"
         return (
-            <Button onPress={() => { handleVolverAFechas() }} title="Volver y cambiar la fecha"></Button>
+            <View >
+                <TouchableOpacity style={stylesGral.iconRow} onPress={() => { handleVolverAFechas() }} >
+                    <Icon type="material-community" name={"arrow-left-bold"} size={16} color={estilosVar.azulSuave} />
+                    <Text style={[{ color: estilosVar.azulSuave }, { fontWeight: 'bold' }, { fontSize: 16 }]}>{titulo}</Text>
+                </TouchableOpacity>
+            </View >
         )
     }
 
-    const BottonConfirmaTurno = () => {
+    const BotonConfirmaTurno = () => {
+        const titulo = "Quiero confirmar mi turno"
         return (
-            <Button onPress={() => { handleConfirmarTurno() }} title="Quiero confirmar mi turno"></Button>
+            <View style={[stylesGral.containerBtnGrande, { height: 75 }]}>
+                <TouchableOpacity onPress={() => { handleConfirmarTurno() }} style={stylesGral.btnGrande}>
+                    <Text style={[stylesGral.textoBtnGrande, { fontSize: 16 }]}>{titulo}</Text>
+                </TouchableOpacity>
+            </View >
         )
     }
 
 
-    const BottonCerrarTurno = () => {
+    const BotonCerrarTurno = () => {
+        const titulo = "Listo"
         return (
-            <Button onPress={() => { handleCerrarTurno() }} title="Salir"></Button>
+            <View style={[stylesGral.containerBtnGrande, { height: 75 }]}>
+                <TouchableOpacity onPress={() => { handleCerrarTurno() }} style={stylesGral.btnGrande}>
+                    <Text style={[stylesGral.textoBtnGrande, { fontSize: 16 }]}>{titulo}</Text>
+                </TouchableOpacity>
+            </View >
         )
     }
 
@@ -238,13 +263,13 @@ export default function SolicitarTurno({ route }) {
                         />
                     </View>
                     <View>
-                        <BottonConfirmarFecha />
+                        <BotonConfirmarFecha />
                     </View>
                 </>
             ) : (
                 <>
                     <View style={[stylesGral.viewCard, stylesGral.elevation, stylesGral.viewCentrado, stylesGral.paddigVertical10]}>
-                        <BottonVolerAFechas />
+                        <BotonVolerAFechas />
                         <Text style={[stylesGral.tituloH6, stylesGral.tituloMargin]}>Seleccione un horario</Text>
                         <FlatList
                             data={infoFecha.horasDisponibles}
@@ -255,7 +280,7 @@ export default function SolicitarTurno({ route }) {
                         />
                     </View>
                     <View >
-                        <BottonConfirmarHora />
+                        <BotonConfirmarHora />
                     </View>
                 </>
             )
@@ -276,7 +301,7 @@ export default function SolicitarTurno({ route }) {
                                 : null
                             }
                         </View>
-                        <BottonConfirmaTurno />
+                        <BotonConfirmaTurno />
                     </ScrollView>
                 </ModalComp>
             }
@@ -292,7 +317,7 @@ export default function SolicitarTurno({ route }) {
                             <Text>Gracias por utilizar este servicio</Text>
 
                         </View>
-                        <BottonCerrarTurno />
+                        <BotonCerrarTurno />
                     </ScrollView>
                 </ModalComp>
             }
@@ -305,6 +330,7 @@ export default function SolicitarTurno({ route }) {
 
 const styles = StyleSheet.create({
     textItemFecha: {
+        fontSize: 16,
         fontWeight: "bold",
         marginVertical: 10,
         marginHorizontal: 5,

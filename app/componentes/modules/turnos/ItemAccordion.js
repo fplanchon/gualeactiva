@@ -8,7 +8,7 @@ export default function ItemAccordion(props) {
     const [expandido, setExpandido] = useState(false)
     const navigation = useNavigation()
     const irASolicitarTurno = (Tramite) => {
-        console.log('iraSolicitarturno', Tramite)
+        //console.log('iraSolicitarturno', Tramite)
         navigation.navigate("SolicitarTurno", { 'Tramite': Tramite })
     }
 

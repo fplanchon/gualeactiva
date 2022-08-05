@@ -1,5 +1,8 @@
-import { StyleSheet } from "react-native";
-import estilosVar from "./estilos";
+import { StyleSheet } from "react-native"
+import estilosVar from "./estilos"
+import { createViewPortConfig } from 'react-native-responsive-view-port'
+
+const { vw, vh } = createViewPortConfig()
 
 const stylesGral = StyleSheet.create({
     formContainer: {
@@ -53,10 +56,14 @@ const stylesGral = StyleSheet.create({
     },
     boxSimple: {
         borderWidth: 1,
-        borderColor: estilosVar.azulSuave,
-        padding: 20,
+        borderWidth: 2,
+        borderColor: 'lightgrey',
+        padding: 10,
         marginVertical: 8,
         marginHorizontal: 16,
+        borderRadius: 5,
+        minWidth: '90%',
+        width: '90%'
     },
     buttonStyleCancelar: {
         backgroundColor: estilosVar.rojoCrayola,
@@ -93,20 +100,48 @@ const stylesGral = StyleSheet.create({
         marginVertical: 10,
         marginLeft: '5%',
     },
-    shadowProp: {
-        shadowColor: 'red',//estilosVar.colorIconoInactivo,
-        shadowOffset: { width: 5, height: 5 },
-        shadowOpacity: 1,
-        shadowRadius: 3,
-    },
     elevation: {
         elevation: 20,
         shadowColor: estilosVar.violetaOscuro,
     },
     textBold: {
         fontWeight: 'bold',
-    }
+    },
+    textCentrado: {
+        textAlign: 'center'
+    },
+    textBoldGris: {
+        fontWeight: 'bold',
+        color: estilosVar.colorIconoInactivo
+    },
+    textBoldBlanco: {
+        fontWeight: 'bold',
+        color: 'white'
+    },
+    containerBtnGrande: {
+        alignItems: 'center',
+        height: vh * 100,
+        paddingBottom: 10
+    },
+    btnGrande: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: estilosVar.azulSuave,
+        width: '90%',
+        height: 100,
+        borderRadius: 20
+    },
+    textoBtnGrande: {
+        color: 'white',
+        fontWeight: 'bold',
+        fontSize: 30
+    },
+    iconRow: {
+        flexDirection: "row",
 
+        alignItems: "center"
+    }
 })
 
 export default stylesGral
