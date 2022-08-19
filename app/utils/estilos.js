@@ -6,7 +6,7 @@ const estilosVar = {
     rojoCrayola: '#EC0B43',
     verdeCyan: '#008F66',
     beige: '#F2F3D9',
-    azulSuave: '#0094C6',
+    azulSuave: '#37BBED',//0094C6
     naranjaBitter: '#FF755D',
     greenBlue: '#2364AA',
     violetaOscuro: "#3F4257"

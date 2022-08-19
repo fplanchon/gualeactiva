@@ -158,6 +158,11 @@ export const useUsrCiudadanoFirestore = () => {
 
     const updateProfileFirestore = async (datos, PimUsuario) => {
         await setDocument(colCiudadanos, PimUsuario, datos).then(res => {
+            if (datos.phone != null) {
+                console.log('seteando celular', datos.phone)
+                AsyncStorage.setItem('numeroCelular', datos.phone)
+            }
+
             console.log('Respuesta updateProfileFirestore setDocument', res)
         }).catch((error) => {
             console.log('error updateProfileFirestore', error);

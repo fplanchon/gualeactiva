@@ -8,6 +8,7 @@ import { AuthContext } from "../../../contexts/AuthContext";
 import { useNavigation } from "@react-navigation/native";
 import { Icon } from "react-native-elements";
 
+
 export default function SolicitarTurno({ route }) {
     //const Turnera = props.Turno
     const { Tramite } = route.params;
@@ -128,7 +129,7 @@ export default function SolicitarTurno({ route }) {
     );
 
     const ItemHora = ({ item, onPress, backgroundColor, textColor }) => (
-        <TouchableOpacity key={item.id} onPress={onPress} style={[styles.touchItemFecha, backgroundColor]} >
+        <TouchableOpacity key={item} onPress={onPress} style={[styles.touchItemFecha, backgroundColor]} >
             <Text style={[styles.textItemFecha, textColor]}>{item}</Text>
         </TouchableOpacity >
     );
@@ -139,6 +140,7 @@ export default function SolicitarTurno({ route }) {
 
         return (
             <Item
+                key={item.id}
                 item={item}
                 onPress={() => handleSelectFecha(item)}
                 backgroundColor={{ backgroundColor }}
@@ -243,9 +245,9 @@ export default function SolicitarTurno({ route }) {
 
         )
     }
-    return (
-        <ScrollView >
 
+    return (
+        <>
             <Cabecera />
             {infoFecha == '' ? (
                 <>
@@ -262,9 +264,9 @@ export default function SolicitarTurno({ route }) {
                             scrollEnabled={true}
                         />
                     </View>
-                    <View>
-                        <BotonConfirmarFecha />
-                    </View>
+
+                    <BotonConfirmarFecha />
+
                 </>
             ) : (
                 <>
@@ -277,11 +279,12 @@ export default function SolicitarTurno({ route }) {
                             keyExtractor={(item) => item}
                             extraData={selectedHora}
                             style={styles.widthHoras}
+                            scrollEnabled={true}
                         />
                     </View>
-                    <View >
-                        <BotonConfirmarHora />
-                    </View>
+
+                    <BotonConfirmarHora />
+
                 </>
             )
             }
@@ -321,7 +324,7 @@ export default function SolicitarTurno({ route }) {
                     </ScrollView>
                 </ModalComp>
             }
-        </ScrollView>
+        </>
 
 
 

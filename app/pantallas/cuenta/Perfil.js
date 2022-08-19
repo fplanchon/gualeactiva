@@ -142,7 +142,7 @@ export default function Perfil() {
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 const { usuarioInfo } = await recuperarDatosDeSesion()
-                console.log(usuarioInfo)
+                console.log('usuarioInfo', usuarioInfo)
                 setInitialValues({
                     nombres: usuarioInfo ? usuarioInfo.nombres : "",
                     apellido: usuarioInfo ? usuarioInfo.apellido : "",

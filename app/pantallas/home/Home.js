@@ -18,6 +18,7 @@ export default function Home() {
         { id: 3, icon: "file-document", title: "Tasas (boletas)", onPress: () => navigation.navigate("tasasHome") },
         { id: 4, icon: "ticket", title: "Multas" },
         { id: 5, icon: "code-brackets", title: "Pruebas", onPress: () => navigation.navigate("Sandbox") },
+
     ]
 
     const WIDTH = Dimensions.get("window").width;
@@ -25,22 +26,22 @@ export default function Home() {
     const buttonWidth = WIDTH / column;
 
     return (
-        <ScrollView>
-            <>
-                <View style={styles.encabezadoLogo}>
-                    <Image style={{ width: "100%", height: 100, marginTop: 70 }} resizeMode="contain" source={require("../../../assets/logo-gualeactiva.png")} />
-                </View>
-                <View style={styles.viewStyle}>
-                    <FlatList
-                        data={buttons}
-                        renderItem={({ item }) => {
-                            return <ButtonHome key={item.id} widthBtn={buttonWidth} icon={item.icon} title={item.title} onPress={item.onPress} />
-                        }}
-                        keyExtractor={(item) => item.id}
-                        numColumns={column}
-                    />
-                </View>
-            </>
+        <ScrollView stickyHeaderIndices={[0]}>
+
+            <View style={styles.encabezadoLogo}>
+                <Image style={{ width: "100%", height: 75, marginTop: 0 }} resizeMode="contain" source={require("../../../assets/logo-gualeactiva.png")} />
+            </View>
+            <View style={styles.viewStyle}>
+                <FlatList
+                    data={buttons}
+                    renderItem={({ item }) => {
+                        return <ButtonHome key={item.id} widthBtn={buttonWidth} icon={item.icon} title={item.title} onPress={item.onPress} />
+                    }}
+                    keyExtractor={(item) => item.id}
+                    numColumns={column}
+                />
+            </View>
+
         </ScrollView>
 
     )
@@ -56,8 +57,10 @@ const styles = StyleSheet.create({
         height: Dimensions.get("window").height
     },
     encabezadoLogo: {
-        backgroundColor: estilosVar.violetaOscuro,
+        backgroundColor: estilosVar.azulSuave,
         width: "100%",
-        height: 228
+        height: 75,
+        borderBottomRightRadius: 120,
+        borderBottomLeftRadius: 0
     }
 })

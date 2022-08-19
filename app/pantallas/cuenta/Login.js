@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef, useContext } from "react";
 import { StyleSheet, Text, ScrollView, View, Modal } from "react-native";
 
-import { Input, Icon, Button, Card, SocialIcon } from "react-native-elements";
+import { Input, Icon, Button, Card, SocialIcon, Image } from "react-native-elements";
 import { useNavigation } from "@react-navigation/native";
 import { getAuth, GoogleAuthProvider, signInWithCredential, PhoneAuthProvider, deleteUser, fetchSignInMethodsForEmail } from "firebase/auth";
 import { useUsrCiudadanoFirestore } from "../../customhooks/useUsrCiudadanoFirestore";
@@ -76,7 +76,7 @@ export default function Login() {
         } else {
             setErrorNumCelular('Indique un numero válido')
         }
-    };
+    }
 
     const signInWithPhone = async () => {
         const credential = PhoneAuthProvider.credential(verificationId, codeSend.code);
@@ -148,7 +148,8 @@ export default function Login() {
                 sendMessage()
             }, 10)
         } else {
-            setNumero(null, setStateModalCelular(true))
+            //setNumero(null, setStateModalCelular(true))
+            alert('Sin numero registrado')
         }
         //setStateModalCelular(true)
     }
@@ -164,15 +165,12 @@ export default function Login() {
 
 
     return (
-        <ScrollView>
-            <Card>
-                <Card.Title>
-                    <Text style={styles.tituloCard}>
-                        Indique Email o DNI y Contraseña
-                    </Text>
-                </Card.Title>
-                <Card.Image style={styles.logo} source={require("../../../assets/logo-color.png")} />
-                <Card.Divider />
+        <ScrollView contentContainerStyle={[{ backgroundColor: estilosVar.azulSuave, ...stylesGral.viewDobleCentrado }]}>
+            <View style={[stylesGral.viewCard, stylesGral.elevation, { marginLeft: 0 }]}>
+
+                <Text style={[{ ...stylesGral.tituloH3 }]}>
+                    Indique Email o DNI y Contraseña
+                </Text>
                 <Input
                     placeholder="Email o DNI"
                     containerStyle={styles.inputForm}
@@ -214,9 +212,10 @@ export default function Login() {
                     <Button buttonStyle={styles.btnLoginAFIP} title="Iniciar con AFIP" onPress={abrirModalAFIP} />
                     <Button buttonStyle={styles.btnLoginANSES} title="Iniciar con ANSES" onPress={abrirModalANSES} />
                 </View>
-            </Card>
+            </View>
 
-            {stateModalCelular &&
+            {
+                stateModalCelular &&
                 <ModalComp stateModal={stateModalCelular} setModalState={setStateModalCelular} titulo="Iniciar sesión con teléfono">
                     <View style={styles.modal}>
                         {!codeSend.viewCodeInput ?
@@ -246,7 +245,7 @@ export default function Login() {
                                 } />
                                 <Button title="Verificar codigo" onPress={signInWithPhone} style={styles.btnCode} />
                                 <Text>{"\n"}</Text>
-                                <Button title=" Cambiar Nº teléfono" onPress={blanquearCodeSend} style={styles.btnCode} />
+                                {/*<Button title=" Cambiar Nº teléfono" onPress={blanquearCodeSend} style={styles.btnCode} />*/}
 
                                 {(verifCelularError) ?
                                     <>
@@ -272,7 +271,7 @@ export default function Login() {
             </Modal>
 
             {loading && <Loading isLoading={loading} text={"Espere un momento..."} />}
-        </ScrollView>
+        </ScrollView >
     );
 }
 
@@ -295,7 +294,7 @@ const styles = StyleSheet.create({
         color: estilosVar.colorIconoInactivo,
     },
     tituloCard: {
-        fontSize: 25,
+        fontSize: 20,
     },
     textRegister: {
         textAlign: "center",
@@ -308,7 +307,8 @@ const styles = StyleSheet.create({
         fontWeight: "bold",
     },
     logo: {
-        //width: 200,
+        width: 64,
+        height: 64
     },
     boxSocial: {
         marginTop: 40,

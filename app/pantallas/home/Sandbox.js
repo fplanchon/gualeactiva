@@ -16,7 +16,7 @@ export default function Sandbox() {
     //const [usuariosInfo, setUsuariosInfo] = useState([])
     const { data: dataFs, error: errorFs, loading: loadingFs, getDataColl, getDataDoc } = useFirestore()
     const { data: resSet, error: errorSet, loading: loadingSet, setDocument, deleteDocument } = useFirestore()
-    const {recuperarDatosDeSesion} = useUsrCiudadanoFirestore();
+    const { recuperarDatosDeSesion } = useUsrCiudadanoFirestore();
 
     const { dataUsr, errorUsr, loadingUsr, getUsuario } = useUsrCiudadanoFirestore()
 
@@ -39,8 +39,8 @@ export default function Sandbox() {
 
     const enviarNotificacion = async () => {
         const url = constantes.API + 'notificarActiva';
-        const {usuarioInfo} = await recuperarDatosDeSesion();
-        const datos = {titulo: "Notificacion de prueba",contenido:"Cuerpo notificacion",link:"Sandbox",modulo:"RIM",id_ciudadano: usuarioInfo.id_ciudadano };
+        const { usuarioInfo } = await recuperarDatosDeSesion();
+        const datos = { titulo: "Notificacion de prueba", contenido: "Cuerpo notificacion", link: "Sandbox", modulo: "RIM", id_ciudadano: usuarioInfo.id_ciudadano };
         const response = await axios.post(url, datos);
         //console.log("RTA:", response)
     }
@@ -53,19 +53,19 @@ export default function Sandbox() {
         notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
             console.log(notification);
         });
-        
+
         responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
             console.log(response);
         });
-        
-            
+
+
 
         if (res !== null) {
             setData(res.data)
             //console.log('home_useeffect')
             //console.log(res.data)
         }
-        
+
         return () => {
             Notifications.removeNotificationSubscription(notificationListener.current);
             Notifications.removeNotificationSubscription(responseListener.current);

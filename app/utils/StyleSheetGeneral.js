@@ -5,6 +5,29 @@ import { createViewPortConfig } from 'react-native-responsive-view-port'
 const { vw, vh } = createViewPortConfig()
 
 const stylesGral = StyleSheet.create({
+    vistaPreviaALogin: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: estilosVar.azulSuave,
+        height: '100%',
+    },
+    headerStyle: {
+        height: 100,
+        borderBottomLeftRadius: 15,
+        borderBottomRightRadius: 15,
+        backgroundColor: estilosVar.azulSuave,
+
+    },
+    headerTitleStyle: {
+        fontWeight: 'bold',
+        color: 'white'
+    },
+    tabBarStyles: {
+        backgroundColor: estilosVar.azulSuave,
+        borderTopLeftRadius: 10,
+        borderTopRightRadius: 10
+    },
     formContainer: {
         paddingLeft: 30,
         paddingRight: 30,
@@ -82,6 +105,13 @@ const stylesGral = StyleSheet.create({
         flex: 1,
         alignItems: "center"
     },
+    viewDobleCentrado: {
+        flex: 1,
+
+        justifyContent: 'center',
+        //alignContent: 'center',
+        alignItems: 'center'
+    },
     marginVertical10: {
         marginVertical: 10
     },
@@ -141,6 +171,13 @@ const stylesGral = StyleSheet.create({
         flexDirection: "row",
 
         alignItems: "center"
+    },
+    encabezadoLogo: {
+        backgroundColor: estilosVar.azulSuave,
+        width: "100%",
+        height: 75,
+        borderBottomRightRadius: 120,
+        borderBottomLeftRadius: 0
     }
 })
 

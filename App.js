@@ -1,16 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { LogBox } from 'react-native';
+import { LogBox, View } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native'
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs"
-
-import { Icon } from "react-native-elements"
+import stylesGral from './app/utils/StyleSheetGeneral';
+import { Icon, Image, LinearProgress, Text } from "react-native-elements"
 import { AuthContext } from "./app/contexts/AuthContext"
 import AsyncStorage from '@react-native-async-storage/async-storage'
-
-import { initFirebase } from "./app/utils"
-import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile, signOut } from 'firebase/auth'
 import estilosVar from "./app/utils/estilos"
 import Loading from "./app/componentes/Loading"
 import HomeStack from "./app/navigations/HomeStack"
@@ -26,7 +23,7 @@ LogBox.ignoreAllLogs();
 
 export default function App({ navigation }) {
     const RootStack = createNativeStackNavigator();
-
+    const [iniciando, setIniciando] = useState(true)
     const { iniciarSesionEmailYPass, crearUsuarioEmailYPassConCiudadano, cerrarSesionAuth, recuperarDatosDeSesion, getReturnUsuario, returnGetDataDoc } = useUsrCiudadanoFirestore()
 
     const colUsuariosInfo = constantes.colecciones.usuariosInfo;
@@ -148,7 +145,16 @@ export default function App({ navigation }) {
                 //1 - Si existe en firebase, logg ok 
                 if (email !== '') {
                     payload = await iniciarSesionEmailYPass(email, password)
-                    dispatch({ type: 'LOGIN', ...payload });
+
+                    console.log('payload.usuarioInfo.phone ', payload.usuarioInfo.phone)
+
+                    if (payload.usuarioInfo.phone !== null) {
+                        AsyncStorage.setItem('numeroCelular', payload.usuarioInfo.phone)
+                    }
+
+
+
+                    dispatch({ type: 'LOGIN', ...payload })
                 }
             } catch (e) {
                 let errorMsj = '';
@@ -163,7 +169,7 @@ export default function App({ navigation }) {
                         const temp = PimUsuario.nombres
                         delete PimUsuario.nombres
                         PimUsuario['nombres'] = temp.split(' ').slice(1).join(' ');
-                        PimUsuario['apellido'] = temp.split(' ').slice(0,1).join(' ');
+                        PimUsuario['apellido'] = temp.split(' ').slice(0, 1).join(' ');
                         await crearUsuarioEmailYPassConCiudadano(email, password, PimUsuario).then(() => {
                             authContext.signIn({ datoUsr, password });
                         }).catch((error) => {
@@ -249,6 +255,7 @@ export default function App({ navigation }) {
 
             try {
                 payloadLogin = await recuperarDatosDeSesion()
+                setIniciando(false)
                 if (payloadLogin) {
                     authContext.dispatchManual('LOGIN', payloadLogin);
                 }
@@ -267,26 +274,40 @@ export default function App({ navigation }) {
     return (
         <AuthContext.Provider value={{ authContext: authContext, loginState: loginState }}>
             <NavigationContainer ref={navigationRef}>
-                {loginState.userToken !== null ? (
 
-                    // User is signed in
-                    <Tab.Navigator
-                        screenOptions={({ route }) => ({
-                            tabBarInactiveTintColor: estilosVar.colorIconoInactivo,
-                            tabBarActiveTintColor: estilosVar.colorIconoActivo,
-                            tabBarIcon: ({ color }) => screenOption(route, color)
-                        })}
-                    >
 
-                    <Tab.Screen name="home-stack" component={HomeStack} options={{ title: "Inicio", headerShown: false, unmountOnBlur: true, }} />
-		      <Tab.Screen name="perfil-stack" component={PerfilStack} options={{ title: "Mi perfil", headerShown: false, unmountOnBlur: true }} />
-                    {/* <Tab.Screen name="menu-stack" component={MenuStack} options={{ title: "Menu", headerShown: false }} /> */}
+                {iniciando ? (
+                    <View style={stylesGral.vistaPreviaALogin}>
+                        <View style={{ width: '100%' }}><Image style={{ width: '100%', height: 250, marginTop: 0 }} resizeMode="contain" source={require("./assets/logo-gualeactiva.png")} /></View>
 
-                    </Tab.Navigator>
-                ) :
-                    <LoginStack />
+                        <LinearProgress color="primary" style={{ width: "90%" }} />
+                        <Text style={[stylesGral.textBoldBlanco, stylesGral.tituloH5, { paddingTop: 10 }]}>Iniciando...</Text>
+                    </View>) :
+                    loginState.userToken !== null ? (
+
+                        // User is signed in
+                        <Tab.Navigator
+
+                            screenOptions={({ route }) => ({
+
+                                tabBarInactiveTintColor: estilosVar.colorIconoInactivo,
+                                tabBarActiveTintColor: 'white',//estilosVar.colorIconoActivo,
+                                tabBarIcon: ({ color }) => screenOption(route, color),
+                                tabBarStyle: { ...stylesGral.tabBarStyles },
+                                tabBarLabelStyle: { fontSize: 16 },
+
+                            })}
+                        >
+
+                            <Tab.Screen name="home-stack" component={HomeStack} options={{ title: "Inicio", headerShown: false, unmountOnBlur: true, }} />
+                            <Tab.Screen name="perfil-stack" component={PerfilStack} options={{ title: "Mi perfil", headerShown: false, unmountOnBlur: true }} />
+                            {/* <Tab.Screen name="menu-stack" component={MenuStack} options={{ title: "Menu", headerShown: false }} /> */}
+
+                        </Tab.Navigator>
+                    ) :
+                        <LoginStack />
+
                 }
-
             </NavigationContainer>
             {loginState.isLoading == true ? (
                 <Loading isLoading={true} text={(loginState.loadingText == "") ? "Aguarde..." : loginState.loadingText} />
@@ -318,5 +339,9 @@ function screenOption(route, color) {
             break;
     }
 
-    return <Icon type="material-community" name={iconName} size={22} color={color} />
+    return (
+        <View>
+            <Icon type="material-community" name={iconName} size={22} color={color} />
+        </View>
+    )
 }
