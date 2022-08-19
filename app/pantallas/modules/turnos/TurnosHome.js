@@ -24,7 +24,9 @@ const TurnosHome = ({ navigation }) => {
     const [stateModalTramites, setStateModalTramites] = useState(false)
     const [stateModalTProximos, setStateModalTProximos] = useState(false)
     const [stateModalTPasados, setStateModalTPasados] = useState(false)
-    const [turnoCancelar, setTrunoCancelar] = useState(false)
+    const [idTurnoCancelar, setIdTurnoCancelar] = useState(false)
+    const [turnoCancelar, setTurnoCancelar] = useState(false)
+    const [stateModalCancelarTurno, setStateModalCancelarTurno] = useState(false)
 
     const id_ciudadano = loginState.usuarioInfoFs.id_ciudadano
     const { vw, vh } = createViewPortConfig();
@@ -45,7 +47,7 @@ const TurnosHome = ({ navigation }) => {
         method: 'post',
         url: '/turnosweb/consultas/marcarTurnoActiva',
         ejecutarEnInicio: false,
-        data: turnoCancelar
+        data: idTurnoCancelar
     })
 
     const handleBuscaTurnera = (e) => {
@@ -64,9 +66,14 @@ const TurnosHome = ({ navigation }) => {
         setStateModalTProximos(!stateModalTProximos)
     }
 
+    const handleModalCancelarTurno = (Turno) => {
+        setTurnoCancelar(Turno)
+        setStateModalCancelarTurno(true)
+
+    }
+
     const handleCancelarTurno = (id_turno) => {
-        console.log('id_turno', id_turno)
-        setTrunoCancelar({ 'id_turno': id_turno })
+        setIdTurnoCancelar({ 'id_turno': id_turno })
     }
 
     useEffect(() => {
@@ -84,9 +91,10 @@ const TurnosHome = ({ navigation }) => {
     }, [buscarTurneraFiltro])
 
     useEffect(() => {
-        console.log('useEffect turnoCancelar')
+        console.log('useEffect idTurnoCancelar')
         ejecutarCancelarTurno()
-    }, [turnoCancelar])
+        setStateModalCancelarTurno(false)
+    }, [idTurnoCancelar])
 
     useEffect(() => {
         if (cancelarTurno > 0) {
@@ -269,7 +277,7 @@ const TurnosHome = ({ navigation }) => {
                         size: 15,
                         color: estilosVar.rojoCrayola
                     }}
-                    onPress={() => { handleCancelarTurno(item.item.id) }}
+                    onPress={() => { handleModalCancelarTurno(item.item) }}
                 />
             </View>
         )
@@ -334,6 +342,36 @@ const TurnosHome = ({ navigation }) => {
                     }
                 </ModalComp>
             }
+
+            {stateModalCancelarTurno &&
+                <ModalComp stateModal={stateModalCancelarTurno} setModalState={setStateModalCancelarTurno} titulo="Confirme" >
+
+                    <View>
+                        <Text style={[styles.textSinTurnos, stylesGral.textCentrado, { marginTop: 25 * vh }]}>¿Está seguro que desea cancelar el turno?</Text>
+                    </View>
+                    <View>
+                        <Text style={[stylesGral.textBold, { color: estilosVar.verdeCyan }]}>Trámite: {turnoCancelar.tramite}</Text>
+                        <Text style={stylesGral.textBoldGris}>Oficina: {turnoCancelar.oficina}</Text>
+                        <Text style={stylesGral.textBoldGris}>{fechaIso2dmy(turnoCancelar.fecha_turno) + ' ' + turnoCancelar.solo_hora}</Text>
+
+                        <Button
+                            title="Sí, deseo Cancelar el turno"
+                            buttonStyle={[stylesGral.buttonStyleOutlineCancelar, { marginTop: 25 * vh }]}
+                            titleStyle={stylesGral.titleStyleCancelar}
+                            reised={true}
+                            type="outline"
+                            icon={{
+                                name: "close",
+                                size: 15,
+                                color: estilosVar.rojoCrayola
+                            }}
+                            onPress={() => { handleCancelarTurno(turnoCancelar.id) }}
+                        />
+                    </View>
+
+                </ModalComp>
+            }
+
 
             {cargandoCancelarTurno ? (
                 <Loading isLoading={true} text={"Aguarde..."} />

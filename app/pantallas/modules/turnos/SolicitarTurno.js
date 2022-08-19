@@ -135,7 +135,7 @@ export default function SolicitarTurno({ route }) {
     );
 
     const renderItem = ({ item }) => {
-        const backgroundColor = item.fecha_dmy === selectedId ? estilosVar.colorIconoActivo : 'grey';
+        const backgroundColor = item.fecha_dmy === selectedId ? estilosVar.colorIconoActivo : 'lightgreen';
         const color = item.fecha_dmy === selectedId ? 'white' : 'white';
 
         return (
@@ -152,7 +152,7 @@ export default function SolicitarTurno({ route }) {
 
 
     const renderItemHoras = ({ item }) => {
-        const backgroundColor = item === selectedHora ? estilosVar.colorIconoActivo : 'grey';
+        const backgroundColor = item === selectedHora ? estilosVar.colorIconoActivo : 'lightgreen';
         const color = item === selectedHora ? 'white' : 'white';
 
         return (
