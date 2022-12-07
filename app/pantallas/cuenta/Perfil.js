@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, useContext } from "react"
 import { View, Text, StyleSheet, ScrollView, Button, TextInput } from "react-native";
-import { Avatar, Icon } from "react-native-elements"
+import { Avatar, Icon, Input } from "react-native-elements"
 import { useNavigation } from "@react-navigation/native";
 import ButtonList from "../../componentes/home/ButtonList"
 import estilosVar from "../../utils/estilos";
@@ -17,17 +17,25 @@ import { useUsrCiudadanoFirestore } from "../../customhooks/useUsrCiudadanoFires
 import PermisosUsuario from "../../utils/PermisosUsuario";
 import * as ImagePicker from 'expo-image-picker';
 import constantes from "../../utils/constantes";
+import { useTraducirFirebaseError } from "../../customhooks/useTraducirFirebaseError";
+import CambiarCelular from "../../componentes/perfil/CambiarCelular";
 
 export default function Perfil() {
     const { authContext } = useContext(AuthContext);
     const auth = getAuth();
     const navigation = useNavigation();
-    const { recuperarDatosDeSesion, updateProfileFirestore, uploadImageStorageAndSync, getURIToBlob } = useUsrCiudadanoFirestore();
+    const { recuperarDatosDeSesion, updateProfileFirestore, uploadImageStorageAndSync, getURIToBlob } = useUsrCiudadanoFirestore()
 
-    const [showPass, setShowPass] = useState({ inputContrasena: false, inputRepetirContrasena: false });
+    const { state: verifCelularError, dispatch: dispatchCelularError } = useTraducirFirebaseError()
+    const [userExistPhone, setUserExistPhone] = useState({ existe: false, idUser: null, currentUser: null })
+    //const [stateModalCelular, setStateModalCelular] = useState(false)
+
+    const [showPass, setShowPass] = useState({ inputContrasena: false, inputRepetirContrasena: false })
     const [loading, setLoading] = useState(false);
     const [verification, setVerification] = useState(null);
     const disabled = false
+
+
 
     const [initialValues, setInitialValues] = useState({
         nombres: '',
@@ -39,6 +47,7 @@ export default function Perfil() {
         fechaNacimiento: '',
         photoUrl: null
     })
+
     const initialValModalContrasena = { nuevaContrasena: "", confirmaContrasena: "" }
     const initialValModalCorreo = { nuevoCorreo: "", dni: null }
 
@@ -80,7 +89,7 @@ export default function Perfil() {
                 }
 
                 // Actualiza tambien en Firestore
-                const { usuarioInfo } = await recuperarDatosDeSesion()
+                const { usuarioInfo } = await recuperarDatosDeSesion('Perfil updateEmailUsuario')
                 await updateProfileFirestore({ email: values.nuevoCorreo }, usuarioInfo.id_ciudadano);
             });
         }).catch(error => {
@@ -104,7 +113,7 @@ export default function Perfil() {
     const updateDatosPersonales = async (values) => {
         delete values.dni
 
-        const { usuarioInfo } = await recuperarDatosDeSesion()
+        const { usuarioInfo } = await recuperarDatosDeSesion('Perfil->updateDatosPersonales')
         await updateProfileFirestore(values, usuarioInfo.id_ciudadano);
     }
 
@@ -120,7 +129,7 @@ export default function Perfil() {
         if (!result.cancelled) {
             setInitialValues({ ...initialValues, photoUrl: result.uri })
             const blob = await getURIToBlob(result.uri);
-            const { usuarioInfo } = await recuperarDatosDeSesion()
+            const { usuarioInfo } = await recuperarDatosDeSesion('Perfil->handlePickAvatar')
             await uploadImageStorageAndSync(blob, usuarioInfo.id_ciudadano);
         }
     }
@@ -141,18 +150,20 @@ export default function Perfil() {
     useEffect(() => {
         onAuthStateChanged(auth, async (user) => {
             if (user) {
-                const { usuarioInfo } = await recuperarDatosDeSesion()
-                console.log('usuarioInfo', usuarioInfo)
-                setInitialValues({
-                    nombres: usuarioInfo ? usuarioInfo.nombres : "",
-                    apellido: usuarioInfo ? usuarioInfo.apellido : "",
-                    email: user.email,
-                    cuitcuil: usuarioInfo ? usuarioInfo.cuitcuil.split('-').join('') : null,
-                    phone: usuarioInfo ? usuarioInfo.phone : null,
-                    fechaNacimiento: usuarioInfo ? usuarioInfo.fechaNacimiento : "",
-                    photoUrl: user.photoURL
-                })
-                setVerification(user.emailVerified)
+                const { usuarioInfo } = await recuperarDatosDeSesion('Perfil->useEffect onAuthStateChanged')
+                console.log('Perfil onAuthStateChanged usuarioInfo: ', usuarioInfo)
+                if (usuarioInfo) {
+                    setInitialValues({
+                        nombres: usuarioInfo ? usuarioInfo.nombres : "",
+                        apellido: usuarioInfo ? usuarioInfo.apellido : "",
+                        email: usuarioInfo.email,
+                        cuitcuil: usuarioInfo ? usuarioInfo.cuitcuil.split('-').join('') : null,
+                        phone: usuarioInfo ? usuarioInfo.phone : null,
+                        fechaNacimiento: usuarioInfo ? usuarioInfo.fechaNacimiento : "",
+                        photoUrl: user.photoURL
+                    })
+                    setVerification(user.emailVerified)
+                }
             }
         });
     }, [])
@@ -254,15 +265,17 @@ export default function Perfil() {
                                     />
                                 </View>
                                 {errors.fechaNacimiento && <ErrorMessage error={touched.fechaNacimiento && errors.fechaNacimiento} />}
-                                <View style={styles.inputFormProfile}>
+                                <View style={{ ...styles.inputFormProfile, backgroundColor: !disabled && "rgba(135, 134, 134, 0.3)" }}>
                                     <Icon name="cellphone" type='material-community' size={20} color="#000" />
                                     <TextInput
                                         onChangeText={handleChange('phone')}
                                         onBlur={handleBlur('phone')}
+
                                         value={values.phone && values.phone !== null && parseInt(values.phone[0]) === 0 ? values.phone.slice(1) : values.phone}
-                                        style={{ marginLeft: 10, width: "92%" }}
+                                        style={{ marginLeft: 10, width: "92%", color: "#000" }}
                                         placeholder="Celular"
                                         ref={Inputs.phone}
+                                        editable={disabled} selectTextOnFocus={false}
                                     />
                                 </View>
                                 {errors.phone && <ErrorMessage error={touched.phone && errors.phone} />}
@@ -277,6 +290,7 @@ export default function Perfil() {
             <View>
                 {!initialValues.email.includes("gmail.com") && <ButtonList icon="at" typeIcon="material-community" title="Cambiar correo" onPress={() => setVisibleModal({ visible: true, tipo: "correo electrónico" })} />}
                 <ButtonList icon="lock" title="Cambiar contraseña" typeIcon="material-community" onPress={() => setVisibleModal({ visible: true, tipo: "contraseña" })} />
+                <ButtonList icon="cellphone" title="Cambiar Celular" typeIcon="material-community" onPress={() => navigation.navigate("cambiarcelular")} />
                 <ButtonList icon="bell-slash" typeIcon="font-awesome" title="Notificaciones" onPress={() => navigation.navigate("ajustesnotificaciones")} />
                 <ButtonList title="Cerrar sesión" color={estilosVar.rojoCrayola} onPress={() => authContext.signOut()} />
             </View>
@@ -364,6 +378,13 @@ export default function Perfil() {
                     </View>
                 </ModalComp>
             }
+
+            {/*stateModalCelular &&
+                <ModalComp stateModal={stateModalCelular} setModalState={setStateModalCelular} titulo="Cambiar número de teléfono celular">
+                    <CambiarCelular />
+                </ModalComp>
+            */}
+
             {loading && <Loading isLoading={true} text={"Cargando..."} />}
         </ScrollView>
     )
@@ -412,8 +433,8 @@ const styles = StyleSheet.create({
         justifyContent: "flex-start",
         alignItems: "center",
         paddingLeft: 10,
-        paddingRight: 50,
-        borderRadius: 10,
+        paddingRight: 20,
+        borderRadius: 5,
         marginBottom: 8
     },
     boxWithIcon: {

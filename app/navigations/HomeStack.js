@@ -7,11 +7,18 @@ import Sandbox from '../pantallas/home/Sandbox'
 import estilosVar from '../utils/estilos';
 import TasasHome from '../pantallas/modules/tasas/TasasHome';
 import TurnosHome from '../pantallas/modules/turnos/TurnosHome';
+import SolicitudesHome from '../pantallas/modules/solicitudes/SolicitudesHome';
 import Notificaciones from '../componentes/home/Notificaciones';
 import SolicitarTurno from '../pantallas/modules/turnos/SolicitarTurno';
+import Perfil from "../pantallas/cuenta/Perfil"
+import AjustesNotificaciones from '../pantallas/cuenta/perfil/AjustesNotificaciones';
+import CambiarCelular from '../componentes/perfil/CambiarCelular';
 import { useNavigation } from '@react-navigation/native';
 import { useUsrCiudadanoFirestore } from '../customhooks/useUsrCiudadanoFirestore';
 import stylesGral from '../utils/StyleSheetGeneral';
+import Solicitud from '../pantallas/modules/solicitudes/Solicitud';
+import NuevaSolicitud from '../pantallas/modules/solicitudes/NuevaSolicitud';
+import SelectorTramite from '../pantallas/modules/solicitudes/SelectorTramite';
 
 const Stack = createNativeStackNavigator()
 
@@ -21,7 +28,7 @@ export default function HomeStack() {
     const { recuperarDatosDeSesion } = useUsrCiudadanoFirestore();
 
     useEffect(async () => {
-        const { usuarioInfo } = await recuperarDatosDeSesion();
+        const { usuarioInfo } = await recuperarDatosDeSesion('HomeStack useEffect');
         if (usuarioInfo) {
             setIDCiudadano(usuarioInfo.id_ciudadano)
         }
@@ -32,7 +39,6 @@ export default function HomeStack() {
     )
 
     const opcionesComunesStackScreen = {
-
         headerStyle: stylesGral.headerStyle, headerTintColor: 'white', headerTitleStyle: stylesGral.headerTitleStyle
     }
 
@@ -83,6 +89,40 @@ export default function HomeStack() {
                 name="SolicitarTurno"
                 component={SolicitarTurno}
                 options={{ title: "Solicitar Turno", headerRight: iconoNotificaciones, ...opcionesComunesStackScreen }} />
+            <Stack.Screen
+                name="solicitudesHome"
+                component={SolicitudesHome}
+                options={{ title: "Solicitudes", headerRight: iconoNotificaciones, ...opcionesComunesStackScreen }} />
+            <Stack.Screen
+                name="miperfil"
+                component={Perfil}
+                options={{ title: "Mi perfil e", ...opcionesComunesStackScreen }}
+            />
+            <Stack.Screen
+                name="ajustesnotificaciones"
+                component={AjustesNotificaciones}
+                options={{ title: "Ajustes Notificaciones", ...opcionesComunesStackScreen }}
+            />
+            <Stack.Screen
+                name="cambiarcelular"
+                component={CambiarCelular}
+                options={{ title: "Cambiar Celular", headerRight: iconoNotificaciones, ...opcionesComunesStackScreen }}
+            />
+            <Stack.Screen
+                name="solicitud"
+                component={Solicitud}
+                options={{ title: "Solicitud", headerRight: iconoNotificaciones, ...opcionesComunesStackScreen }}
+            />
+            <Stack.Screen
+                name="nuevasolicitud"
+                component={NuevaSolicitud}
+                options={{ title: "Nueva Solicitud", headerRight: iconoNotificaciones, ...opcionesComunesStackScreen }}
+            />
+            <Stack.Screen
+                name="selectortramite"
+                component={SelectorTramite}
+                options={{ title: "Seleccionar Trámite", headerRight: iconoNotificaciones, ...opcionesComunesStackScreen }}
+            />
         </Stack.Navigator >
     )
 }

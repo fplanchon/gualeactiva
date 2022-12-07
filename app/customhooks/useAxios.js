@@ -68,7 +68,6 @@ axiosInstance.interceptors.response.use(
 
 
 const useAxios = (configParams) => {
-
     const [res, setRes] = useState('');
     const [datos, setDatos] = useState('');
     const [err, setErr] = useState('');

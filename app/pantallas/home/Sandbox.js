@@ -9,6 +9,7 @@ import { useUsrCiudadanoFirestore } from "../../customhooks/useUsrCiudadanoFires
 import constantes from "../../utils/constantes"
 import axios from "axios"
 import * as Notifications from 'expo-notifications';
+import { useNumeroCelular } from "../../customhooks/useNumeroCelular"
 
 export default function Sandbox() {
     const [data, setData] = useState(null)
@@ -26,6 +27,9 @@ export default function Sandbox() {
     const notificationListener = useRef();
     const responseListener = useRef();
 
+    const { setNumeroCelular, getNumeroCelular, removeNumeroCelular } = useNumeroCelular()
+    const [stateNumero, setStateNumero] = useState(false)
+
     const { res, err, loading, refetch } = useAxios({
         method: 'post',
         url: '/juegopreguntas/consultas/obtenerCategorias',
@@ -39,7 +43,7 @@ export default function Sandbox() {
 
     const enviarNotificacion = async () => {
         const url = constantes.API + 'notificarActiva';
-        const { usuarioInfo } = await recuperarDatosDeSesion();
+        const { usuarioInfo } = await recuperarDatosDeSesion('SandBox->enviarNotificacion');
         const datos = { titulo: "Notificacion de prueba", contenido: "Cuerpo notificacion", link: "Sandbox", modulo: "RIM", id_ciudadano: usuarioInfo.id_ciudadano };
         const response = await axios.post(url, datos);
         //console.log("RTA:", response)
@@ -51,11 +55,11 @@ export default function Sandbox() {
         }
 
         notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
-            console.log(notification);
+            console.log('sandbox addNotificationReceivedListener', notification);
         });
 
         responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
-            console.log(response);
+            console.log('sandbox addNotificationResponseReceivedListener', response);
         });
 
 
@@ -72,12 +76,30 @@ export default function Sandbox() {
         }
     }, [pedir]);
 
+    React.useEffect(async () => {
+        setStateNumero(await getNumeroCelular())
+
+    }, [])
 
 
+    const setearNumero = async () => {
+        await setNumeroCelular('35741', '3446508238')
+        setStateNumero(await getNumeroCelular())
+        //removeNumeroCelular()
+    }
+
+    const removerNumero = async () => {
+        removeNumeroCelular()
+    }
 
     return (
         <ScrollView>
             <Text>SANDBOX</Text>
+            <Text>StateNumero {JSON.stringify(stateNumero)}</Text>
+            <Button title="Set Numero Cel" onPress={() => setearNumero()} />
+
+            <Button title="removerNumero" onPress={() => removerNumero()} />
+
             <Text>Context..! {loginStateJson}</Text>
             <Text>Pedir: {pedir}</Text>
             <Text>Loading: {(loading) ? 1 : 0}</Text>

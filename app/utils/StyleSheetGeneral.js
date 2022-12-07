@@ -24,9 +24,10 @@ const stylesGral = StyleSheet.create({
         color: 'white'
     },
     tabBarStyles: {
-        backgroundColor: estilosVar.azulSuave,
-        borderTopLeftRadius: 10,
-        borderTopRightRadius: 10
+        //backgroundColor: estilosVar.azulSuave,
+        borderTopLeftRadius: 5,
+        borderTopRightRadius: 5,
+
     },
     formContainer: {
         paddingLeft: 30,
@@ -166,6 +167,25 @@ const stylesGral = StyleSheet.create({
         color: 'white',
         fontWeight: 'bold',
         fontSize: 30
+    },
+    containerBtnMediano: {
+        alignItems: 'center',
+        height: vh * 75,
+        paddingBottom: 10
+    },
+    btnMediano: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: estilosVar.azulSuave,
+        width: '90%',
+        height: 100,
+        borderRadius: 20
+    },
+    textoBtnMediano: {
+        color: 'white',
+        fontWeight: 'bold',
+        fontSize: 24
     },
     iconRow: {
         flexDirection: "row",

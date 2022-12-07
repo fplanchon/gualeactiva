@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "265790572597",
+    "project_id": "gualeactivados",
+    "storage_bucket": "gualeactivados.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:265790572597:android:96465d845a17ac264f897c",
+        "android_client_info": {
+          "package_name": "com.muchigchu.gualeactivados"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "265790572597-3unv3sjbqur7ja48554cph1r26d9nh7s.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAdgG06XnWnm_JAk_hKk4U3LNG4xDHV0Vs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "265790572597-3unv3sjbqur7ja48554cph1r26d9nh7s.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

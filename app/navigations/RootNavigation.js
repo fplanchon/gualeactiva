@@ -7,5 +7,3 @@ export function navigate(name, params) {
         navigationRef.navigate(name, params);
     }
 }
-
-

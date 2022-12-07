@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 import { LogBox, View } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native'
@@ -18,13 +18,46 @@ import LoginStack from './app/navigations/LoginStack'
 import PerfilStack from './app/navigations/PerfilStack';
 import { navigationRef } from "./app/navigations/RootNavigation"
 import { useUsrCiudadanoFirestore } from "./app/customhooks/useUsrCiudadanoFirestore"
+import { Linking } from 'react-native';
+import * as Notifications from 'expo-notifications'
+import * as RootNavigation from "./app/navigations/RootNavigation"
+import { formatearUrl } from "./app/utils/FormatearUrl"
 
-LogBox.ignoreAllLogs();
+
+/*Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+        shouldShowAlert: true,
+        shouldPlaySound: false,
+        shouldSetBadge: false,
+    }),
+})*/
+// This listener is fired whenever a user taps on or interacts with a notification (works when app is foregrounded, backgrounded, or killed)
+Notifications.addNotificationResponseReceivedListener((response) => {
+    console.log('pre addNotificationResponseReceivedListener', response)
+    AsyncStorage.setItem(constantes.rutaNotificacion, response.notification.request.content.data.url)
+    /* console.log('app url', response.notification.request.content.data.url)
+     if (
+         response &&
+         response.notification.request.content.data.url &&
+         response.actionIdentifier === Notifications.DEFAULT_ACTION_IDENTIFIER
+     ) {
+         //Linking.openURL(lastNotificationResponse.notification.request.content.data.url);
+ 
+         //RootNavigation.navigate('cambiarcelular')
+     }*/
+
+    //RootNavigation.navigate('turnosHome')
+})
+
+//const preLastNotificationResponse = Notifications.useLastNotificationResponse();
+//console.log('otro pre lastNotificationResponse', preLastNotificationResponse.notification.request.content.data.url)
+LogBox.ignoreAllLogs()
 
 export default function App({ navigation }) {
     const RootStack = createNativeStackNavigator();
     const [iniciando, setIniciando] = useState(true)
     const { iniciarSesionEmailYPass, crearUsuarioEmailYPassConCiudadano, cerrarSesionAuth, recuperarDatosDeSesion, getReturnUsuario, returnGetDataDoc } = useUsrCiudadanoFirestore()
+
 
     const colUsuariosInfo = constantes.colecciones.usuariosInfo;
 
@@ -244,7 +277,7 @@ export default function App({ navigation }) {
                   usuarioInfo: usuarioInfo
               }
               authContext.dispatchManual('LOGIN', resultado)*/
-            payloadLogin = await recuperarDatosDeSesion()
+            payloadLogin = await recuperarDatosDeSesion('App -> verAuth')
             console.log(payloadLogin);
         }
     }), []);
@@ -254,18 +287,64 @@ export default function App({ navigation }) {
             let payloadLogin = false;
 
             try {
-                payloadLogin = await recuperarDatosDeSesion()
+                payloadLogin = await recuperarDatosDeSesion('App -> useEffect timeout 1000')
                 setIniciando(false)
                 if (payloadLogin) {
                     authContext.dispatchManual('LOGIN', payloadLogin);
                 }
-                //userToken = await AsyncStorage.getItem('userToken');
+                //userToken = await AsyncStorage.getItem('userToken ');
             } catch (e) {
                 console.log(e);
             }
         }, 1000);
     }, []);
 
+
+    Notifications.setNotificationHandler({
+        handleNotification: async () => ({
+            shouldShowAlert: true,
+            shouldPlaySound: false,
+            shouldSetBadge: false,
+        }),
+    })
+    const notificationListener = useRef();
+    const responseListener = useRef();
+
+    /* useEffect(async () => {
+ 
+ 
+         notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
+             //console.log('app addNotificationReceivedListener', notification);
+             //RootNavigation.navigate('cambiarcelular')
+         });
+ 
+         responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
+             //console.log('app addNotificationResponseReceivedListener', response);
+             RootNavigation.navigate('turnosHome')
+         });
+ 
+         return () => {
+             Notifications.removeNotificationSubscription(notificationListener.current);
+             Notifications.removeNotificationSubscription(responseListener.current);
+         }
+     }, [])*/
+
+    const lastNotificationResponse = Notifications.useLastNotificationResponse();
+
+    React.useEffect(() => {
+        if (
+            lastNotificationResponse &&
+            lastNotificationResponse.notification.request.content.data.url &&
+            lastNotificationResponse.actionIdentifier === Notifications.DEFAULT_ACTION_IDENTIFIER
+        ) {
+            //Linking.openURL(lastNotificationResponse.notification.request.content.data.url);
+            console.log('app lastNotificationResponse', lastNotificationResponse.notification.request.content.data.url)
+            const urlNoti = lastNotificationResponse.notification.request.content.data.url
+            const urlData = formatearUrl(urlNoti)
+            console.log('urlData', urlData)
+            RootNavigation.navigate(urlData.screen, urlData.params)
+        }
+    }, [lastNotificationResponse]);
 
 
 
@@ -291,8 +370,8 @@ export default function App({ navigation }) {
                             screenOptions={({ route }) => ({
 
                                 tabBarInactiveTintColor: estilosVar.colorIconoInactivo,
-                                tabBarActiveTintColor: 'white',//estilosVar.colorIconoActivo,
-                                tabBarIcon: ({ color }) => screenOption(route, color),
+                                tabBarActiveTintColor: 'black',//estilosVar.colorIconoActivo,
+                                tabBarIcon: ({ color, focused }) => screenOption(route, color, focused),
                                 tabBarStyle: { ...stylesGral.tabBarStyles },
                                 tabBarLabelStyle: { fontSize: 16 },
 
@@ -318,7 +397,7 @@ export default function App({ navigation }) {
 
 }//APP
 
-function screenOption(route, color) {
+function screenOption(route, color, focused) {
     let iconName;
 
     switch (route.name) {
@@ -327,13 +406,13 @@ function screenOption(route, color) {
             iconName = "compass";
             break;
         case "home-stack":
-            iconName = "home";
+            iconName = (focused) ? "home" : "home-outline";
             break;
         case "login-stack":
             iconName = "home";
             break;
         case "perfil-stack":
-            iconName = "account";
+            iconName = (focused) ? "account" : "account-outline";
             break;
         default:
             break;

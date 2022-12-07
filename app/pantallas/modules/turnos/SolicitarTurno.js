@@ -6,7 +6,7 @@ import estilosVar from "../../../utils/estilos";
 import ModalComp from "../../../componentes/ModalComp";
 import { AuthContext } from "../../../contexts/AuthContext";
 import { useNavigation } from "@react-navigation/native";
-import { Icon } from "react-native-elements";
+import { Icon, LinearProgress } from "react-native-elements";
 
 
 export default function SolicitarTurno({ route }) {
@@ -44,19 +44,6 @@ export default function SolicitarTurno({ route }) {
         ejecutarEnInicio: false,
         data: dataTurno
     })
-    /*useEffect(() => {
-        console.log('fechasDisp', fechasDisp)
-    }, [fechasDisp])*/
-
-
-    /*useEffect(() => {
-        console.log(' useEffect filtroInfoFecha')
-        buscarInfoFecha()
-    }, [filtroInfoFecha])*/
-
-    /*useEffect(() => {
-        setSelectedHora(null)
-    }, [infoFecha])*/
 
     const handleSelectFecha = (itemSeleccionado) => {
         setSelectedId(itemSeleccionado.fecha_dmy)
@@ -77,9 +64,8 @@ export default function SolicitarTurno({ route }) {
         limpiarGuardarTurno()
     }
 
-
     const handleConfirmarTurno = () => {
-        //console.log('handleConfirmarTurno')
+
         const id_agenda = Tramite.id_agenda
         const id_ciudadano = loginState.usuarioInfoFs.id_ciudadano
         const tipo = 'web'
@@ -252,9 +238,7 @@ export default function SolicitarTurno({ route }) {
             {infoFecha == '' ? (
                 <>
                     <View style={[stylesGral.viewCard, stylesGral.elevation, stylesGral.viewCentrado, stylesGral.paddigVertical10]}>
-
                         <Text style={[stylesGral.tituloH5, stylesGral.tituloMargin]}>Seleccione una fecha</Text>
-
                         <FlatList
                             data={fechasDisp.topFechasDisponibles}
                             renderItem={renderItem}
@@ -262,17 +246,17 @@ export default function SolicitarTurno({ route }) {
                             extraData={selectedId}
                             style={styles.widthFechas}
                             scrollEnabled={true}
+                            ListEmptyComponent={<LinearProgress color="primary" style={{ width: "90%" }} />}
                         />
                     </View>
-
                     <BotonConfirmarFecha />
-
                 </>
             ) : (
                 <>
                     <View style={[stylesGral.viewCard, stylesGral.elevation, stylesGral.viewCentrado, stylesGral.paddigVertical10]}>
+                        <Text style={stylesGral.tituloH6}>{fechaDesc}</Text>
                         <BotonVolerAFechas />
-                        <Text style={[stylesGral.tituloH6, stylesGral.tituloMargin]}>Seleccione un horario</Text>
+                        <Text style={[stylesGral.tituloH6]}>Seleccione un horario</Text>
                         <FlatList
                             data={infoFecha.horasDisponibles}
                             renderItem={renderItemHoras}
@@ -280,11 +264,10 @@ export default function SolicitarTurno({ route }) {
                             extraData={selectedHora}
                             style={styles.widthHoras}
                             scrollEnabled={true}
+                            ListEmptyComponent={<LinearProgress color="primary" style={{ width: "90%" }} />}
                         />
                     </View>
-
                     <BotonConfirmarHora />
-
                 </>
             )
             }

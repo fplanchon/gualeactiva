@@ -1,6 +1,6 @@
-import { initializeApp,getApp } from "firebase/app"
+import { initializeApp, getApp } from "firebase/app"
 import { getAuth } from "firebase/auth"
-import { getFirestore } from "firebase/firestore"
+import { getFirestore, initializeFirestore } from "firebase/firestore"
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
 
@@ -16,9 +16,12 @@ const firebaseConfig = {
     measurementId: "G-KPN7EVGMD3"
 }
 
+
+
+
 const initFirebase = initializeApp(firebaseConfig)
 const auth = getAuth(initFirebase)
-const dbFirestore = getFirestore(initFirebase)
+const dbFirestore = initializeFirestore(initFirebase, { experimentalAutoDetectLongPolling: true })
 
 auth.languageCode = "es";
 export { initFirebase, auth, dbFirestore, getApp }

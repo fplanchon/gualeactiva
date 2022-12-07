@@ -1,16 +1,27 @@
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
 import { StyleSheet, Text, View, Icon, ScrollView } from 'react-native'
 import { ListItem } from "react-native-elements"
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation } from "@react-navigation/native"
+
 
 export default function ItemAccordion(props) {
     const Turnera = props.Turnera
-    const [expandido, setExpandido] = useState(false)
+    const checkEstadoExpandir = props.estadoExpandir
+    const filtro = props.filtro
+    //console.log('props.estadoExpandir', props.estadoExpandir)
+    const [expandido, setExpandido] = useState(true)
     const navigation = useNavigation()
     const irASolicitarTurno = (Tramite) => {
         //console.log('iraSolicitarturno', Tramite)
         navigation.navigate("SolicitarTurno", { 'Tramite': Tramite })
     }
+
+    useEffect(() => {
+
+        //setExpandido(checkEstadoExpandir)
+
+    }, [])
+
 
     return (
         <ListItem.Accordion

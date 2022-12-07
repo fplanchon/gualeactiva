@@ -3,6 +3,7 @@ import { useFirestore } from "./useFirestore";
 import constantes from "../utils/constantes";
 import { getAuth, createUserWithEmailAndPassword, updateProfile, deleteUser, signInWithEmailAndPassword, signOut, sendEmailVerification } from 'firebase/auth'
 import { getStorage, getDownloadURL, ref, uploadBytes } from "firebase/storage";
+import AsyncStorage from '@react-native-async-storage/async-storage'
 
 export const useUsrCiudadanoFirestore = () => {
     const auth = getAuth()
@@ -34,8 +35,13 @@ export const useUsrCiudadanoFirestore = () => {
             )
             console.log('AUTHfirebase', auth.currentUser)
 
-            resultado = await recuperarDatosDeSesion()
-
+            resultado = await recuperarDatosDeSesion('useUsrCiudadanoFirestore iniciarSesionEmailYPass')
+            /*resultado = {
+                email: 'fabian.david.p@gmail.com',
+                token: 'eyJhbGciOiJSUzI1NiIsImtpZCI6IjIxZTZjMGM2YjRlMzA5NTI0N2MwNjgwMDAwZTFiNDMxODIzODZkNTAiLCJ0eXAiOiJKV1QifQ.eyJuYW1lIjoiUExBTkNIT04gRkFCSUFOIERBVklEIiwiaXNzIjoiaHR0cHM6Ly9zZWN1cmV0b2tlbi5nb29nbGUuY29tL2d1YWxlYWN0aXZhZG9zIiwiYXVkIjoiZ3VhbGVhY3RpdmFkb3MiLCJhdXRoX3RpbWUiOjE2NjM3NjcwMjAsInVzZXJfaWQiOiJZMk5IZDU0cE1BYmZiTE9CNVhNeEFYblVZSVUyIiwic3ViIjoiWTJOSGQ1NHBNQWJmYkxPQjVYTXhBWG5VWUlVMiIsImlhdCI6MTY2Mzc2NzAyMCwiZXhwIjoxNjYzNzcwNjIwLCJlbWFpbCI6ImZwbGFuY2hvbkBndWFsZWd1YXljaHUuZ292LmFyIiwiZW1haWxfdmVyaWZpZWQiOmZhbHNlLCJmaXJlYmFzZSI6eyJpZGVudGl0aWVzIjp7ImVtYWlsIjpbImZwbGFuY2hvbkBndWFsZWd1YXljaHUuZ292LmFyIl19LCJzaWduX2luX3Byb3ZpZGVyIjoicGFzc3dvcmQifX0.UslsIR28-2BdCV1BbB3EZKJsSvf4gtr5knTRHmAdYCk00K8zG_ODV8a5O-d5SwrmXSowd3cvyHDQIlTINLTMo8fOcsduvSwiwJHBCdK1AqQ7odY4lm2Y-BPhsjs_X8ikzpgMGK2-ET8GK4mHxbYr9Msqh1DlV0rbJMkOXFv_91zH6IOvwyZSWBBWJj4P0W1xAafZtNpai6207PMNDF6J3svBhK0gXKpLy-vvrPRExJjhZryxutDrJk4CIV561S8nMaS5soRnzre9xNVMS3wF6CX8A1Go5LmVskuAz-Ms-gRiHds_O2saR4e4fXGb86ifWLNBjjJbRqI739yQiVmQsw',
+                usuarioInfo: {},
+                typeLogin: 'firebase'
+            }*/
             return resultado
         } catch (error) {
             console.log('error desde useUsrCiudadanoFirestore iniciarSesionEmailYPass', error)
@@ -43,7 +49,7 @@ export const useUsrCiudadanoFirestore = () => {
         }
     }
 
-    const recuperarDatosDeSesion = async () => {
+    const recuperarDatosDeSesion = async (desde = 'no indicado') => {
         try {
             let resultado = null
             let usuarioInfo = null
@@ -71,7 +77,7 @@ export const useUsrCiudadanoFirestore = () => {
 
             return resultado
         } catch (error) {
-            console.log('error desde useUsrCiudadanoFirestore recuperarDatosDeSesion', error)
+            console.log('error desde useUsrCiudadanoFirestore recuperarDatosDeSesion, llamado desde ' + desde + ': ', error)
             throw error
         }
     }
@@ -163,7 +169,7 @@ export const useUsrCiudadanoFirestore = () => {
                 AsyncStorage.setItem('numeroCelular', datos.phone)
             }
 
-            console.log('Respuesta updateProfileFirestore setDocument', res)
+            // console.log('Respuesta updateProfileFirestore setDocument', res)
         }).catch((error) => {
             console.log('error updateProfileFirestore', error);
             throw error

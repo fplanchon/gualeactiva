@@ -9,11 +9,11 @@ import { Icon } from "react-native-elements";
 import Loading from "../Loading";
 
 
-Notifications.setNotificationHandler({
+/*Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
   }),
-});
+});*/
 
 const Notificaciones = ({ route }) => {
   const notificationListener = useRef();
@@ -55,7 +55,7 @@ const Notificaciones = ({ route }) => {
     const token = await PermisosUsuario.registroNotificacionesPushAsync();
     let token_actuales = [];
 
-    const { usuarioInfo } = await recuperarDatosDeSesion();
+    const { usuarioInfo } = await recuperarDatosDeSesion('Notificaciones useEffect pedir');
     if (!usuarioInfo.expo_tokens || usuarioInfo.length < 1) {
       token_actuales.push(token);
       await updateProfileFirestore({ expo_tokens: token_actuales }, id_ciudadano);
@@ -67,20 +67,19 @@ const Notificaciones = ({ route }) => {
         token_actuales.push(token);
         await updateProfileFirestore({ expo_tokens: token_actuales }, id_ciudadano);
         actualizarTokenDispositivo(token)
-
       }
     }
 
     // Cada vez que se recibe una notificación mientras la aplicación está en primer plano
     notificationListener.current =
       Notifications.addNotificationReceivedListener((notification) => {
-        console.log(notification.request.trigger.remoteMessage.data);
+        console.log('addNotificationReceivedListener', notification);
       });
 
     // Cada vez que un usuario toca o interactúa con una notificación (Funciona en segundo plano)
     responseListener.current =
       Notifications.addNotificationResponseReceivedListener((response) => {
-        console.log(response);
+        console.log('addNotificationResponseReceivedListener', response)
       });
 
     if (pedir > 0) {
@@ -102,6 +101,8 @@ const Notificaciones = ({ route }) => {
       Notifications.removeNotificationSubscription(responseListener.current);
     };
   }, [pedir]);
+
+
 
   return (
     <View>

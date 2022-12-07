@@ -12,7 +12,7 @@ const ModalComp = (props) => {
     <View>
 
       <Modal visible={visible} animationType="slide">
-        {!ocultarIconClose && <Icon type="material-community" name="close" color="#000" onPress={() => { setModalState(false) }} containerStyle={styles.iconContainer} />}
+        {!ocultarIconClose && <Icon type="material-community" name="arrow-left-thick" color="#000" onPress={() => { setModalState(false) }} containerStyle={styles.iconContainer} />}
         <View>
           <Text style={styles.tituloCard}>{props.titulo}</Text>
           <View style={StyleSheet.children}>

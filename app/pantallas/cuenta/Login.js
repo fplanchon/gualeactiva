@@ -3,7 +3,7 @@ import { StyleSheet, Text, ScrollView, View, Modal } from "react-native";
 
 import { Input, Icon, Button, Card, SocialIcon, Image } from "react-native-elements";
 import { useNavigation } from "@react-navigation/native";
-import { getAuth, GoogleAuthProvider, signInWithCredential, PhoneAuthProvider, deleteUser, fetchSignInMethodsForEmail } from "firebase/auth";
+import { getAuth, signInWithCredential, PhoneAuthProvider, deleteUser, fetchSignInMethodsForEmail } from "firebase/auth";
 import { useUsrCiudadanoFirestore } from "../../customhooks/useUsrCiudadanoFirestore";
 import * as Google from "expo-auth-session/providers/google";
 import * as WebBrowser from "expo-web-browser";
@@ -21,6 +21,7 @@ import { useTraducirFirebaseError } from "../../customhooks/useTraducirFirebaseE
 import WebViewAfip from "./WebViewAfip";
 import WebViewAnses from "./WebViewAnses";
 import AsyncStorage from '@react-native-async-storage/async-storage'
+import { useNumeroCelular } from "../../customhooks/useNumeroCelular"
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -41,6 +42,7 @@ export default function Login() {
     const recaptchaVerifier = useRef(null);
     const initialCodeSend = { viewCodeInput: false, code: "" }
 
+    const { setNumeroCelular, getNumeroCelular } = useNumeroCelular()
     const [numero, setNumero] = useState(null);
     const [codeSend, setCodeSend] = useState(initialCodeSend);
     const [verificationId, setVerificationId] = useState(null)
@@ -48,10 +50,12 @@ export default function Login() {
     const { state: verifCelularError, dispatch: dispatchCelularError } = useTraducirFirebaseError()
     const [errorNumCelular, setErrorNumCelular] = useState(null)
 
+
     useEffect(async () => {
-        let numeroCelular = await AsyncStorage.getItem('numeroCelular');
-        //console.log('numeroCelular', numeroCelular)
-        setNumero(numeroCelular)
+        //let numeroCelular = await AsyncStorage.getItem('numeroCelular')
+        let numeroCelular = await getNumeroCelular()
+        console.log('numeroCelular', numeroCelular)
+        setNumero((numeroCelular) ? numeroCelular.numero : null)
     }, [])
 
     const blanquearCodeSend = () => {
@@ -69,7 +73,7 @@ export default function Login() {
                 "+54" + numero,
                 recaptchaVerifier.current
             );
-            AsyncStorage.setItem('numeroCelular', numero)
+            // AsyncStorage.setItem('numeroCelular', numero)
             setVerificationId(verID)
             setCodeSend({ viewCodeInput: true, code: "" })
             setErrorNumCelular(null)
@@ -85,7 +89,7 @@ export default function Login() {
             let payloadLogin = null;
             console.log("Nuevo usuario:", res._tokenResponse.isNewUser);
             if (!res._tokenResponse.isNewUser) {
-                payloadLogin = await recuperarDatosDeSesion()
+                payloadLogin = await recuperarDatosDeSesion('Login signInWithPhone->signInWithCredential')
                 if (payloadLogin) {
                     authContext.dispatchManual('LOGIN', payloadLogin);
                 } else {
@@ -102,31 +106,31 @@ export default function Login() {
     }
 
     // promptAsync -> al invocarse, se abre un navegador web y se le solicita al usuario que se autentique.
-    const [request, response, promptAsync] = Google.useAuthRequest({ expoClientId: constantes.expoClientIdGoogle });
-    const popupGoogle = () => { promptAsync({ useProxy: true, showInRecents: true }); };
-
-    useEffect(() => {
-        if (response?.type === "success") {
-            setLoading(true)
-            const credential = GoogleAuthProvider.credential(null, response.authentication.accessToken);
-
-            signInWithCredential(auth, credential).then((res) => {
-                res.user && setLoading(false);
-                fetchSignInMethodsForEmail(auth, res.user.email).then(providers => {
-                    /*if(res.user.emailVerified && providers.find(p => p === "password") === "password"){
-                        // Tiene mail verificado y se registró antes
-                        authContext.dispatchManual('LOGIN', { token: auth.currentUser.accessToken })
-                    }*/
-                    if (res._tokenResponse.isNewUser) {
-                        // Es nuevo usuario de google
-                        navigation.navigate("registro", { user_data: res.user })
-                    } else {
-                        authContext.dispatchManual('LOGIN', { token: auth.currentUser.accessToken })
-                    }
-                })
-            })
-        }
-    }, [response]);
+    /* const [request, response, promptAsync] = Google.useAuthRequest({ expoClientId: constantes.expoClientIdGoogle });
+     const popupGoogle = () => { promptAsync({ useProxy: true, showInRecents: true }); };
+ 
+     useEffect(() => {
+         if (response?.type === "success") {
+             setLoading(true)
+             const credential = GoogleAuthProvider.credential(null, response.authentication.accessToken);
+ 
+             signInWithCredential(auth, credential).then((res) => {
+                 res.user && setLoading(false);
+                 fetchSignInMethodsForEmail(auth, res.user.email).then(providers => {
+                     /*if(res.user.emailVerified && providers.find(p => p === "password") === "password"){
+                         // Tiene mail verificado y se registró antes
+                         authContext.dispatchManual('LOGIN', { token: auth.currentUser.accessToken })
+                     }*/
+    /*   if (res._tokenResponse.isNewUser) {
+           // Es nuevo usuario de google
+           navigation.navigate("registro", { user_data: res.user })
+       } else {
+           authContext.dispatchManual('LOGIN', { token: auth.currentUser.accessToken })
+       }
+   })
+})
+}
+}, [response])*/
 
     const handleDatoUsr = (e) => {
         setDatoUsr(e.nativeEvent.text);

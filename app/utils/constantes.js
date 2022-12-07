@@ -14,7 +14,9 @@ const constantes = {
     urls: {
         loginAfip: 'https://desarrollo.gualeguaychu.gov.ar/loginnativeafip',
         loginAnses: 'https://activa.gualeguaychu.gov.ar/loginnativeanses'
-    }
+    },
+    numCel: '_OBJ_NUM_CEL_CIUDADANO',
+    rutaNotificacion: '_RUTA_NOTIFICACION'
 }
 
 export default constantes

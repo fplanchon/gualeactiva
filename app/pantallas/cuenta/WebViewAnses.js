@@ -74,7 +74,7 @@ export default function WebViewAnses() {
         true; // note: this is required, or you'll sometimes get silent failures
     `;
 
-    const script = () => { `window.alert("Aca!");` }
+    const script = () => { `window.alert("Activa Anses!");` }
 
 
     return (

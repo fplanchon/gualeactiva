@@ -2,10 +2,10 @@ import * as ImagePickerExpo from 'expo-image-picker';
 import * as Notifications from 'expo-notifications';
 
 class PermisosUsuario {
-  obtenerPermisoCamara = async () => { 
+  obtenerPermisoCamara = async () => {
     const { status } = await ImagePickerExpo.requestCameraPermissionsAsync();
 
-    if (status !== 'granted' ) {
+    if (status !== 'granted') {
       alert('Necesitas permisos para usar la cámara');
     }
   }
@@ -21,8 +21,9 @@ class PermisosUsuario {
       alert('Falló al obtener el token para enviar notificaciones!');
       return;
     }
-    token = (await Notifications.getExpoPushTokenAsync()).data;
-  
+    console.log('aca getExpoPushTokenAsync')
+    token = (await Notifications.getExpoPushTokenAsync({ experienceId: '@fabiandavidp/gualeactiva' })).data;
+    console.log('getExpoPushTokenAsync ', token)
     return token;
   }
 }

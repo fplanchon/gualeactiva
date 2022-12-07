@@ -1,4 +1,4 @@
-import React, { useState } from "react"
+import React, { useState, useRef, useEffect } from "react"
 import { View, FlatList, Button, ScrollView, StyleSheet, Dimensions } from "react-native"
 import { Image } from "react-native-elements"
 import { AuthContext } from "../../contexts/AuthContext"
@@ -17,16 +17,17 @@ export default function Home() {
         { id: 2, icon: "calendar", title: "Turnos", onPress: () => navigation.navigate("turnosHome") },
         { id: 3, icon: "file-document", title: "Tasas (boletas)", onPress: () => navigation.navigate("tasasHome") },
         { id: 4, icon: "ticket", title: "Multas" },
-        { id: 5, icon: "code-brackets", title: "Pruebas", onPress: () => navigation.navigate("Sandbox") },
-
+        { id: 5, icon: "pencil", title: "Solicitudes", onPress: () => navigation.navigate("solicitudesHome") },
+        { id: 6, icon: "code-brackets", title: "Pruebass", onPress: () => navigation.navigate("Sandbox") },
     ]
 
-    const WIDTH = Dimensions.get("window").width;
+    const WIDTH = Dimensions.get("window").width
     const column = 2
-    const buttonWidth = WIDTH / column;
+    const buttonWidth = WIDTH / column
+
 
     return (
-        <ScrollView stickyHeaderIndices={[0]}>
+        <View stickyHeaderIndices={[0]}>
 
             <View style={styles.encabezadoLogo}>
                 <Image style={{ width: "100%", height: 75, marginTop: 0 }} resizeMode="contain" source={require("../../../assets/logo-gualeactiva.png")} />
@@ -42,8 +43,7 @@ export default function Home() {
                 />
             </View>
 
-        </ScrollView>
-
+        </View>
     )
 
 }
